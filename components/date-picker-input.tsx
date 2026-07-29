@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { format, isValid, parseISO } from "date-fns";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Calendar01Icon, Delete02Icon } from "@hugeicons/core-free-icons";
+import { Calendar01Icon } from "@hugeicons/core-free-icons";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -31,6 +31,9 @@ export function DatePickerInput({ name, defaultValue }: Props) {
     parseDate(defaultValue),
   );
   const value = date ? format(date, "yyyy-MM-dd") : "";
+  const currentYear = new Date().getFullYear();
+  const startMonth = new Date(currentYear - 60, 0);
+  const endMonth = new Date(currentYear + 10, 11);
 
   return (
     <div className="flex w-full items-center gap-2">
@@ -56,6 +59,10 @@ export function DatePickerInput({ name, defaultValue }: Props) {
         <PopoverContent align="start" className="w-auto">
           <Calendar
             mode="single"
+            captionLayout="dropdown"
+            startMonth={startMonth}
+            endMonth={endMonth}
+            defaultMonth={date ?? new Date()}
             selected={date}
             onSelect={(selected) => {
               setDate(selected);
@@ -64,22 +71,6 @@ export function DatePickerInput({ name, defaultValue }: Props) {
           />
         </PopoverContent>
       </Popover>
-
-      {date && (
-        <Button
-          type="button"
-          variant="outline"
-          size="icon-sm"
-          onClick={() => setDate(undefined)}
-        >
-          <HugeiconsIcon
-            aria-hidden="true"
-            icon={Delete02Icon}
-            className="size-4"
-          />
-          <span className="sr-only">Clear date</span>
-        </Button>
-      )}
     </div>
   );
 }

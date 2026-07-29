@@ -5,13 +5,26 @@ import {
   DayPicker,
   getDefaultClassNames,
   type DayButton,
+  type DropdownProps,
   type Locale,
 } from "react-day-picker"
 
 import { cn } from "@/lib/utils"
 import { Button, buttonVariants } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { ArrowLeftIcon, ArrowRightIcon, ArrowDownIcon } from "@hugeicons/core-free-icons"
+import {
+  ArrowLeftIcon,
+  ArrowRightIcon,
+  ArrowDownIcon,
+  ArrowDown01Icon,
+  Tick02Icon,
+} from "@hugeicons/core-free-icons"
 
 function Calendar({
   className,
@@ -70,16 +83,12 @@ function Calendar({
           defaultClassNames.month_caption
         ),
         dropdowns: cn(
-          "flex h-(--cell-size) w-full items-center justify-center gap-1.5 text-sm font-medium",
+          "flex h-(--cell-size) w-full items-center justify-center gap-1 text-sm font-medium",
           defaultClassNames.dropdowns
         ),
         dropdown_root: cn(
           "relative rounded-(--cell-radius)",
           defaultClassNames.dropdown_root
-        ),
-        dropdown: cn(
-          "absolute inset-0 bg-popover opacity-0",
-          defaultClassNames.dropdown
         ),
         caption_label: cn(
           "font-medium select-none",
@@ -162,6 +171,7 @@ function Calendar({
             <HugeiconsIcon icon={ArrowDownIcon} strokeWidth={2} className={cn("size-4", className)} {...props} />
           )
         },
+        Dropdown: CalendarDropdown,
         DayButton: ({ ...props }) => (
           <CalendarDayButton locale={locale} {...props} />
         ),
@@ -178,6 +188,80 @@ function Calendar({
       }}
       {...props}
     />
+  )
+}
+
+function CalendarDropdown({
+  options,
+  value,
+  onChange,
+  disabled,
+  "aria-label": ariaLabel,
+}: DropdownProps) {
+  const contentRef = React.useRef<HTMLDivElement>(null)
+  const selected = options?.find((option) => option.value === value)
+
+  const handleOpenAutoFocus = (event: Event) => {
+    const active = contentRef.current?.querySelector<HTMLElement>(
+      '[data-active="true"]'
+    )
+    if (!active) return
+
+    event.preventDefault()
+    active.scrollIntoView({ block: "center" })
+    active.focus()
+  }
+
+  const handleSelect = (option: number) => {
+    onChange?.({
+      target: { value: String(option) },
+    } as React.ChangeEvent<HTMLSelectElement>)
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          disabled={disabled}
+          aria-label={ariaLabel}
+          className="relative z-10 px-2 font-medium"
+        >
+          {selected?.label}
+          <HugeiconsIcon
+            aria-hidden="true"
+            icon={ArrowDown01Icon}
+            className="text-muted-foreground"
+          />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        ref={contentRef}
+        align="center"
+        className="max-h-56 min-w-28 overflow-y-auto"
+        onOpenAutoFocus={handleOpenAutoFocus}
+      >
+        {options?.map((option) => (
+          <DropdownMenuItem
+            key={option.value}
+            disabled={option.disabled}
+            data-active={option.value === value}
+            onSelect={() => handleSelect(option.value)}
+          >
+            {option.label}
+            {option.value === value && (
+              <HugeiconsIcon
+                aria-hidden="true"
+                icon={Tick02Icon}
+                className="ml-auto"
+              />
+            )}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
 
