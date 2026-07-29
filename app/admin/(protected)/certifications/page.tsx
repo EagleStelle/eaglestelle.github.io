@@ -1,10 +1,7 @@
 import ImageUpload from "@/components/ImageUpload";
-import {
-  DangerButton,
-  Field,
-  PrimaryButton,
-  TextInput,
-} from "@/components/form";
+import { ActionForm } from "@/components/admin/action-form";
+import { DeleteDialog } from "@/components/admin/delete-dialog";
+import { Field, PrimaryButton, TextInput } from "@/components/form";
 import { prisma } from "@/lib/prisma";
 import {
   createCertification,
@@ -23,13 +20,16 @@ export default async function AdminCertificationsPage() {
 
   return (
     <div className="flex flex-col gap-10">
-      <h1 className="text-2xl font-semibold">Certifications</h1>
+      <h1 className="font-display text-4xl tracking-tight">Certifications</h1>
 
-      <form
+      <ActionForm
         action={createCertification}
-        className="flex flex-col gap-5 rounded-xl border border-black/10 p-5 dark:border-white/15"
+        success="Certification added."
+        className="flex flex-col gap-5 rounded-xl border border-border bg-card p-5"
       >
-        <h2 className="font-medium">Add a certification</h2>
+        <h2 className="font-mono text-[11px] tracking-[0.2em] text-muted-foreground uppercase">
+          Add a certification
+        </h2>
 
         <ImageUpload
           name="imageUrl"
@@ -59,17 +59,23 @@ export default async function AdminCertificationsPage() {
         <div>
           <PrimaryButton type="submit">Add certification</PrimaryButton>
         </div>
-      </form>
+      </ActionForm>
 
       <div className="flex flex-col gap-6">
-        <h2 className="font-medium">{certifications.length} saved</h2>
+        <h2 className="font-mono text-[11px] tracking-[0.2em] text-muted-foreground uppercase">
+          {certifications.length} saved
+        </h2>
 
         {certifications.map((certification) => (
           <div
             key={certification.id}
-            className="rounded-xl border border-black/10 p-5 dark:border-white/15"
+            className="rounded-xl border border-border p-5"
           >
-            <form action={updateCertification} className="flex flex-col gap-5">
+            <ActionForm
+              action={updateCertification}
+              success="Certification saved."
+              className="flex flex-col gap-5"
+            >
               <input type="hidden" name="id" value={certification.id} />
 
               <ImageUpload
@@ -121,12 +127,17 @@ export default async function AdminCertificationsPage() {
               <div>
                 <PrimaryButton type="submit">Save</PrimaryButton>
               </div>
-            </form>
+            </ActionForm>
 
-            <form action={deleteCertification} className="mt-4">
-              <input type="hidden" name="id" value={certification.id} />
-              <DangerButton type="submit">Delete certification</DangerButton>
-            </form>
+            <div className="mt-5 border-t border-border pt-5">
+              <DeleteDialog
+                id={certification.id}
+                action={deleteCertification}
+                trigger="Delete certification"
+                title={`Delete "${certification.title}"?`}
+                description="This also deletes the certificate image from blob storage. It cannot be undone."
+              />
+            </div>
           </div>
         ))}
       </div>

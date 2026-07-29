@@ -19,6 +19,7 @@ model Profile {
   githubUrl   String?
   linkedinUrl String?
   websiteUrl  String?
+  themeColor  String   @default("rose")
   updatedAt   DateTime @updatedAt
 }
 

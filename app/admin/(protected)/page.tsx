@@ -26,25 +26,32 @@ export default async function AdminOverviewPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <h1 className="text-2xl font-semibold">Overview</h1>
+      <h1 className="font-display text-4xl tracking-tight">Overview</h1>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {cards.map((card) => (
           <Link
             key={card.href}
             href={card.href}
-            className="rounded-xl border border-black/10 p-5 hover:border-black/30 dark:border-white/15 dark:hover:border-white/40"
+            className="rounded-xl border border-border bg-card p-5 hover:border-foreground/30 hover:bg-accent/40"
           >
-            <p className="text-sm text-zinc-500">{card.label}</p>
-            <p className="mt-1 text-2xl font-semibold">{card.value}</p>
+            <p className="font-mono text-[11px] tracking-[0.2em] text-muted-foreground uppercase">
+              {card.label}
+            </p>
+            <p className="mt-2 font-display text-3xl tracking-tight">
+              {card.value}
+            </p>
           </Link>
         ))}
       </div>
 
       {!profile && (
-        <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
-          Fill in <Link href="/admin/profile" className="underline">Profile</Link> first —
-          the public page needs it to render.
+        <p className="rounded-lg border border-primary/40 bg-primary/10 p-4 text-sm">
+          Fill in{" "}
+          <Link href="/admin/profile" className="underline underline-offset-4">
+            Profile
+          </Link>{" "}
+          first. The public page needs it to render.
         </p>
       )}
     </div>

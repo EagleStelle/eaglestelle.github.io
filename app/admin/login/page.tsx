@@ -11,9 +11,9 @@ export default function LoginPage() {
     <div className="flex flex-1 items-center justify-center px-6 py-24">
       <form
         action={formAction}
-        className="flex w-full max-w-sm flex-col gap-5 rounded-xl border border-black/10 p-6 dark:border-white/15"
+        className="flex w-full max-w-sm flex-col gap-5 rounded-xl border border-border bg-card p-6"
       >
-        <h1 className="text-lg font-semibold">Admin sign in</h1>
+        <h1 className="font-display text-3xl tracking-tight">Admin sign in</h1>
 
         <Field label="Password">
           <TextInput
@@ -25,7 +25,7 @@ export default function LoginPage() {
           />
         </Field>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
 
         <PrimaryButton type="submit" disabled={pending}>
           {pending ? "Signing in…" : "Sign in"}

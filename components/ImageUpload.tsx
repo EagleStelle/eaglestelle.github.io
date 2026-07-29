@@ -3,6 +3,8 @@
 import Image from "next/image";
 import { useState, type ChangeEvent } from "react";
 import { upload } from "@vercel/blob/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 const MAX_BYTES = 8 * 1024 * 1024;
 const ACCEPTED = "image/jpeg,image/png,image/webp,image/avif";
@@ -54,41 +56,56 @@ export default function ImageUpload({
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      <span className="text-sm font-medium">{label}</span>
+    <div className="flex flex-col gap-3">
+      <span className="font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase">
+        {label}
+      </span>
       <input type="hidden" name={name} value={url} required={required} />
 
-      {url ? (
-        <div className="relative h-40 w-40 overflow-hidden rounded-lg border border-black/10 dark:border-white/15">
-          <Image src={url} alt="" fill className="object-cover" sizes="160px" />
-        </div>
-      ) : (
-        <div className="flex h-40 w-40 items-center justify-center rounded-lg border border-dashed border-black/20 text-xs text-zinc-500 dark:border-white/20">
-          No image
-        </div>
-      )}
-
-      <div className="flex items-center gap-3">
-        <input
-          type="file"
-          accept={ACCEPTED}
-          onChange={handleChange}
-          disabled={busy}
-          className="text-sm file:mr-3 file:rounded-md file:border-0 file:bg-zinc-900 file:px-3 file:py-1.5 file:text-sm file:text-white disabled:opacity-50 dark:file:bg-zinc-100 dark:file:text-black"
-        />
-        {url && (
-          <button
-            type="button"
-            onClick={() => setUrl("")}
-            className="text-sm text-red-600 underline"
-          >
-            Clear
-          </button>
+      <div className="flex flex-wrap items-start gap-4">
+        {url ? (
+          <div className="relative size-36 shrink-0 overflow-hidden rounded-lg border border-border bg-muted/40">
+            <Image
+              src={url}
+              alt=""
+              fill
+              className="object-cover"
+              sizes="144px"
+            />
+          </div>
+        ) : (
+          <div className="flex size-36 shrink-0 items-center justify-center rounded-lg border border-dashed border-border text-xs text-muted-foreground">
+            No image
+          </div>
         )}
-      </div>
 
-      {busy && <p className="text-sm text-zinc-500">Uploading…</p>}
-      {error && <p className="text-sm text-red-600">{error}</p>}
+        <div className="flex min-w-56 flex-1 flex-col gap-3">
+          <Input
+            type="file"
+            accept={ACCEPTED}
+            onChange={handleChange}
+            disabled={busy}
+            className="cursor-pointer file:mr-3 file:cursor-pointer file:text-sm"
+          />
+
+          {url && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setUrl("")}
+              className="w-fit rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive"
+            >
+              Clear image
+            </Button>
+          )}
+
+          {busy && (
+            <p className="text-sm text-muted-foreground">Uploading…</p>
+          )}
+          {error && <p className="text-sm text-destructive">{error}</p>}
+        </div>
+      </div>
     </div>
   );
 }

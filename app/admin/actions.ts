@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { destroySession, requireAdmin } from "@/lib/auth";
+import { normalizeThemeColor } from "@/lib/appearance";
 
 function text(formData: FormData, key: string): string {
   return String(formData.get(key) ?? "").trim();
@@ -76,6 +77,7 @@ export async function saveProfile(formData: FormData): Promise<void> {
     githubUrl: optionalText(formData, "githubUrl"),
     linkedinUrl: optionalText(formData, "linkedinUrl"),
     websiteUrl: optionalText(formData, "websiteUrl"),
+    themeColor: normalizeThemeColor(formData.get("themeColor")),
   };
 
   await prisma.profile.upsert({
