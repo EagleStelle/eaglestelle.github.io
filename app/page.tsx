@@ -18,6 +18,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProjectShowcase, type ProjectView } from "@/components/project-showcase";
+import { CredentialShowcase, type CredentialView } from "@/components/credential-showcase";
 import { Timeline, type TimelineEntry } from "@/components/timeline";
 import { parseProjectImageList, parseProjectList } from "@/lib/project-data";
 import { cn } from "@/lib/utils";
@@ -195,6 +196,15 @@ export default async function Home() {
     endDate: item.endDate,
   }));
 
+  const credentialViews: CredentialView[] = certifications.map((item) => ({
+    id: item.id,
+    title: item.title,
+    issuer: item.issuer,
+    imageUrl: item.imageUrl,
+    credentialUrl: item.credentialUrl,
+    issuedAt: item.issuedAt,
+  }));
+
   const heroImage =
     profile.avatarUrl ??
     projectViews[0]?.images[0]?.url ??
@@ -345,48 +355,10 @@ export default async function Home() {
           </PageSection>
         )}
 
-        {certifications.length > 0 && (
+        {credentialViews.length > 0 && (
           <PageSection id="credentials">
             <SectionTitle>Credentials</SectionTitle>
-
-            <div className="grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-5">
-              {certifications.map((certification) => {
-                const issuedYear = certification.issuedAt?.getUTCFullYear();
-
-                return (
-                  <article
-                    key={certification.id}
-                    className="portfolio-item flex flex-col gap-2 rounded-xl outline-none"
-                  >
-                    <GlassImage
-                      src={certification.imageUrl}
-                      alt={certification.title}
-                      className="aspect-square rounded-xl"
-                      imageClassName="object-contain p-5"
-                    />
-                    <h3 className="text-lg leading-snug font-semibold text-balance">
-                      {certification.title}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {certification.issuer}
-                      {issuedYear ? ` / ${issuedYear}` : ""}
-                    </p>
-                    {certification.credentialUrl && (
-                      <Button asChild variant="secondary" size="icon-text">
-                        <a
-                          href={certification.credentialUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <UiIcon icon={ArrowUpRight01Icon} />
-                          Verify
-                        </a>
-                      </Button>
-                    )}
-                  </article>
-                );
-              })}
-            </div>
+            <CredentialShowcase credentials={credentialViews} />
           </PageSection>
         )}
 

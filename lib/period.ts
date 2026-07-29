@@ -9,8 +9,14 @@ export type Period = {
   label: string;
 };
 
-export function formatDateLabel(value: string | null | undefined): string | null {
+export function formatDateLabel(
+  value: string | Date | null | undefined,
+): string | null {
   if (!value) return null;
+
+  if (value instanceof Date) {
+    return isValid(value) ? format(value, "MMM yyyy") : null;
+  }
 
   const trimmed = value.trim();
   if (trimmed === "") return null;
