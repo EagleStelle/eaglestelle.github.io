@@ -24,7 +24,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className="h-full antialiased"
+      className="h-full antialiased scroll-smooth scroll-pt-16"
       suppressHydrationWarning
     >
       <body className="flex min-h-full w-full max-w-full flex-col overflow-x-clip">

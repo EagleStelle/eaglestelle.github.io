@@ -35,7 +35,7 @@ function PageSection({
 }: ComponentPropsWithoutRef<"section">) {
   return (
     <section
-      className={cn("flex w-full flex-col gap-6", sectionInset, className)}
+      className={cn("flex w-full flex-col gap-6 scroll-mt-16", sectionInset, className)}
       {...props}
     />
   );
@@ -385,7 +385,7 @@ export default async function Home() {
 
       </main>
 
-      <footer id="contact" className="glass-nav relative z-10">
+      <footer id="contact" className="glass-nav relative z-10 scroll-mt-16">
         <PageFrame className="flex flex-col gap-6 py-4 sm:py-6 lg:py-8 xl:py-10">
           <div className="grid gap-8 lg:grid-cols-12 lg:gap-12 lg:items-start">
             <div className="flex flex-col gap-6 lg:col-span-5">
