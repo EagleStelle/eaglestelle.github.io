@@ -1,65 +1,209 @@
 import Image from "next/image";
+import Link from "next/link";
+import { prisma } from "@/lib/prisma";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+function groupByCategory<T extends { category: string | null }>(items: T[]) {
+  const groups = new Map<string, T[]>();
+  for (const item of items) {
+    const key = item.category ?? "Other";
+    groups.set(key, [...(groups.get(key) ?? []), item]);
+  }
+  return [...groups.entries()];
+}
+
+export default async function Home() {
+  const [profile, skills, projects, certifications] = await Promise.all([
+    prisma.profile.findUnique({ where: { id: 1 } }),
+    prisma.skill.findMany({ orderBy: [{ order: "asc" }, { name: "asc" }] }),
+    prisma.project.findMany({
+      orderBy: [{ order: "asc" }, { createdAt: "desc" }],
+    }),
+    prisma.certification.findMany({
+      orderBy: [{ order: "asc" }, { issuedAt: "desc" }],
+    }),
+  ]);
+
+  if (!profile) {
+    return (
+      <div className="flex flex-1 items-center justify-center px-6 text-center">
+        <p className="text-sm text-zinc-500">
+          No profile yet. Go to{" "}
+          <Link href="/admin" className="underline">
+            /admin
+          </Link>{" "}
+          to set one up.
+        </p>
+      </div>
+    );
+  }
+
+  const contactLinks = [
+    { href: `mailto:${profile.email}`, label: "Email" },
+    profile.githubUrl && { href: profile.githubUrl, label: "GitHub" },
+    profile.linkedinUrl && { href: profile.linkedinUrl, label: "LinkedIn" },
+    profile.websiteUrl && { href: profile.websiteUrl, label: "Website" },
+    profile.resumeUrl && { href: profile.resumeUrl, label: "Resume" },
+  ].filter((link): link is { href: string; label: string } => Boolean(link));
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
+    <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-20">
+      <section className="flex flex-col items-start gap-6 sm:flex-row sm:items-center">
+        {profile.avatarUrl && (
+          <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-full">
             <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+              src={profile.avatarUrl}
+              alt={profile.name}
+              fill
+              className="object-cover"
+              sizes="112px"
+              priority
             />
-            Deploy Now
-          </a>
+          </div>
+        )}
+
+        <div className="flex flex-col gap-2">
+          <h1 className="text-3xl font-semibold tracking-tight">
+            {profile.name}
+          </h1>
+          <p className="text-lg text-zinc-600 dark:text-zinc-400">
+            {profile.headline}
+          </p>
+          {(profile.location || profile.phone) && (
+            <p className="text-sm text-zinc-500">
+              {[profile.location, profile.phone].filter(Boolean).join(" · ")}
+            </p>
+          )}
+        </div>
+      </section>
+
+      <p className="mt-10 max-w-2xl leading-7 text-zinc-700 dark:text-zinc-300">
+        {profile.summary}
+      </p>
+
+      <nav className="mt-6 flex flex-wrap gap-4 text-sm">
+        {contactLinks.map((link) => (
           <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
+            key={link.label}
+            href={link.href}
             target="_blank"
             rel="noopener noreferrer"
+            className="underline underline-offset-4 hover:no-underline"
           >
-            Documentation
+            {link.label}
           </a>
-        </div>
-      </main>
-    </div>
+        ))}
+      </nav>
+
+      {skills.length > 0 && (
+        <section className="mt-16">
+          <h2 className="text-xl font-semibold">Skills</h2>
+          <div className="mt-6 flex flex-col gap-5">
+            {groupByCategory(skills).map(([category, items]) => (
+              <div key={category} className="flex flex-col gap-2">
+                <h3 className="text-sm font-medium text-zinc-500">
+                  {category}
+                </h3>
+                <ul className="flex flex-wrap gap-2">
+                  {items.map((skill) => (
+                    <li
+                      key={skill.id}
+                      className="rounded-full border border-black/10 px-3 py-1 text-sm dark:border-white/15"
+                    >
+                      {skill.name}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {projects.length > 0 && (
+        <section className="mt-16">
+          <h2 className="text-xl font-semibold">Projects</h2>
+          <div className="mt-6 grid gap-8 sm:grid-cols-2">
+            {projects.map((project) => (
+              <article key={project.id} className="flex flex-col gap-3">
+                <div className="relative aspect-video overflow-hidden rounded-xl border border-black/10 dark:border-white/15">
+                  <Image
+                    src={project.imageUrl}
+                    alt={project.title}
+                    fill
+                    className="object-cover"
+                    sizes="(min-width: 640px) 50vw, 100vw"
+                  />
+                </div>
+                <h3 className="font-medium">{project.title}</h3>
+                <p className="text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+                  {project.description}
+                </p>
+                <div className="flex gap-4 text-sm">
+                  {project.projectUrl && (
+                    <a
+                      href={project.projectUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline underline-offset-4"
+                    >
+                      Live
+                    </a>
+                  )}
+                  {project.sourceUrl && (
+                    <a
+                      href={project.sourceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline underline-offset-4"
+                    >
+                      Source
+                    </a>
+                  )}
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {certifications.length > 0 && (
+        <section className="mt-16">
+          <h2 className="text-xl font-semibold">Certifications</h2>
+          <div className="mt-6 grid gap-8 sm:grid-cols-2">
+            {certifications.map((certification) => (
+              <article key={certification.id} className="flex flex-col gap-3">
+                <div className="relative aspect-4/3 overflow-hidden rounded-xl border border-black/10 dark:border-white/15">
+                  <Image
+                    src={certification.imageUrl}
+                    alt={certification.title}
+                    fill
+                    className="object-contain"
+                    sizes="(min-width: 640px) 50vw, 100vw"
+                  />
+                </div>
+                <h3 className="font-medium">{certification.title}</h3>
+                <p className="text-sm text-zinc-500">
+                  {certification.issuer}
+                  {certification.issuedAt &&
+                    ` · ${certification.issuedAt.getUTCFullYear()}`}
+                </p>
+                {certification.credentialUrl && (
+                  <a
+                    href={certification.credentialUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm underline underline-offset-4"
+                  >
+                    Verify
+                  </a>
+                )}
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+    </main>
   );
 }

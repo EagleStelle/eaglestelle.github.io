@@ -6,12 +6,13 @@ datasource db {
   provider = "postgresql"
 }
 
-// Single-row table. Holds professional summary, resume link, and contact info.
-// Use a fixed id (e.g. 1) so there is always exactly one profile.
 model Profile {
   id          Int      @id @default(1)
-  summary     String   // the one professional summary paragraph
-  resumeUrl   String?  // link to downloadable resume PDF
+  name        String
+  headline    String
+  avatarUrl   String?
+  summary     String
+  resumeUrl   String?
   email       String
   phone       String?
   location    String?
@@ -24,17 +25,17 @@ model Profile {
 model Skill {
   id       Int     @id @default(autoincrement())
   name     String
-  category String? // e.g. "Frontend", "Backend", "Tools"
-  order    Int     @default(0) // for manual sorting
+  category String?
+  order    Int     @default(0)
 }
 
 model Project {
   id          Int      @id @default(autoincrement())
   title       String
   description String
-  imageUrl    String   // hosted image URL (see note in setup)
-  projectUrl  String?  // live demo link
-  sourceUrl   String?  // repo link
+  imageUrl    String
+  projectUrl  String?
+  sourceUrl   String?
   order       Int      @default(0)
   createdAt   DateTime @default(now())
 }
@@ -43,8 +44,8 @@ model Certification {
   id            Int       @id @default(autoincrement())
   title         String
   issuer        String
-  imageUrl      String    // certificate image URL
-  credentialUrl String?   // verification link
+  imageUrl      String
+  credentialUrl String?
   issuedAt      DateTime?
   order         Int       @default(0)
 }
