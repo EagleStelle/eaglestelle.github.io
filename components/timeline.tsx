@@ -34,7 +34,7 @@ export function Timeline({ entries }: { entries: TimelineEntry[] }) {
             className="portfolio-item group relative flex gap-4 sm:gap-6"
           >
             <div className="flex flex-col items-center gap-3">
-              <div className="glass-orb relative size-16 shrink-0 overflow-hidden rounded-2xl sm:size-28">
+              <div className="glass-orb relative size-16 shrink-0 overflow-hidden rounded-lg sm:size-28">
                 {entry.logoUrl ? (
                   <Image
                     src={entry.logoUrl}
@@ -64,7 +64,7 @@ export function Timeline({ entries }: { entries: TimelineEntry[] }) {
                 <PeriodLabel period={period} />
               </div>
 
-              <p className="text-sm font-medium text-primary">
+              <h4 className="text-sm font-medium text-primary">
                 {entry.subtitle}
                 {entry.location && (
                   <span className="text-muted-foreground">
@@ -72,7 +72,7 @@ export function Timeline({ entries }: { entries: TimelineEntry[] }) {
                     {entry.location}
                   </span>
                 )}
-              </p>
+              </h4>
 
               <p className="max-w-3xl text-sm leading-6 whitespace-pre-line text-muted-foreground">
                 {entry.description}

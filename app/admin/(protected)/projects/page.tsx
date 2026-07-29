@@ -4,7 +4,7 @@ import { ActionForm } from "@/components/admin/action-form";
 import { DeleteDialog } from "@/components/admin/delete-dialog";
 import { Field, PrimaryButton, TextArea, TextInput } from "@/components/form";
 import { prisma } from "@/lib/prisma";
-import { formatProjectList, parseProjectImages } from "@/lib/project-data";
+import { formatProjectList, parseProjectImageList } from "@/lib/project-data";
 import {
   createProject,
   deleteProject,
@@ -94,7 +94,7 @@ export default async function AdminProjectsPage() {
                 name="imageUrls"
                 folder="projects"
                 label="Images"
-                defaultValue={parseProjectImages({
+                defaultValue={parseProjectImageList({
                   imageUrl: project.imageUrl,
                   imageUrls: project.imageUrls,
                 })}

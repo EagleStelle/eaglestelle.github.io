@@ -19,7 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProjectShowcase, type ProjectView } from "@/components/project-showcase";
 import { Timeline, type TimelineEntry } from "@/components/timeline";
-import { parseProjectImages, parseProjectList } from "@/lib/project-data";
+import { parseProjectImageList, parseProjectList } from "@/lib/project-data";
 import { cn } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
 
@@ -162,7 +162,7 @@ export default async function Home() {
     id: project.id,
     title: project.title,
     description: project.description,
-    imageUrls: parseProjectImages({
+    images: parseProjectImageList({
       imageUrl: project.imageUrl,
       imageUrls: project.imageUrls,
     }),
@@ -197,7 +197,7 @@ export default async function Home() {
 
   const heroImage =
     profile.avatarUrl ??
-    projectViews[0]?.imageUrls[0] ??
+    projectViews[0]?.images[0]?.url ??
     certifications[0]?.imageUrl;
 
   return (
@@ -216,7 +216,6 @@ export default async function Home() {
             <ThemeToggle />
             <Button
               asChild
-              variant="glass-accent"
               size="icon-text"
               className="hidden sm:inline-flex"
             >
@@ -256,7 +255,7 @@ export default async function Home() {
                     {profile.headline}
                   </p>
                   <div className="flex flex-wrap items-center gap-2">
-                    <Button asChild variant="glass-accent" size="icon-text">
+                    <Button asChild size="icon-text">
                       <a href={`mailto:${profile.email}`}>
                         <UiIcon icon={Mail01Icon} />
                         Contact
@@ -264,7 +263,7 @@ export default async function Home() {
                     </Button>
 
                     {profile.resumeUrl && (
-                      <Button asChild variant="glass" size="icon-text">
+                      <Button asChild variant="secondary" size="icon-text">
                         <a
                           href={profile.resumeUrl}
                           target="_blank"
@@ -280,7 +279,7 @@ export default async function Home() {
                       <Button
                         key={social.name}
                         asChild
-                        variant="glass"
+                        variant="secondary"
                         size="icon-only"
                       >
                         <a
@@ -336,7 +335,7 @@ export default async function Home() {
                   <ul className="flex flex-wrap gap-2">
                     {items.map((skill) => (
                       <li key={skill.id}>
-                        <Badge variant="glass">{skill.name}</Badge>
+                        <Badge>{skill.name}</Badge>
                       </li>
                     ))}
                   </ul>
@@ -373,11 +372,7 @@ export default async function Home() {
                       {issuedYear ? ` / ${issuedYear}` : ""}
                     </p>
                     {certification.credentialUrl && (
-                      <Button
-                        asChild
-                        variant="glass"
-                        size="icon-text"
-                      >
+                      <Button asChild variant="secondary" size="icon-text">
                         <a
                           href={certification.credentialUrl}
                           target="_blank"
@@ -415,7 +410,7 @@ export default async function Home() {
                 <Button
                   key={social.name}
                   asChild
-                  variant="glass"
+                  variant="secondary"
                   size="icon-only"
                 >
                   <a

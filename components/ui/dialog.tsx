@@ -40,11 +40,35 @@ function DialogOverlay({
     <DialogPrimitive.Overlay
       data-slot="dialog-overlay"
       className={cn(
-        "fixed inset-0 isolate z-50 bg-foreground/10 supports-backdrop-filter:backdrop-blur-xs",
+        "fixed inset-0 isolate z-50 bg-background/75 supports-backdrop-filter:bg-background/60 supports-backdrop-filter:backdrop-blur-2xl supports-backdrop-filter:backdrop-brightness-90 supports-backdrop-filter:backdrop-saturate-150 motion-reduce:supports-backdrop-filter:backdrop-blur-md",
         className
       )}
       {...props}
-    />
+    >
+      <svg aria-hidden="true" focusable="false" className="absolute size-0">
+        <filter id="dialog-refraction">
+          <feTurbulence
+            type="fractalNoise"
+            baseFrequency="0.006 0.009"
+            numOctaves={2}
+            seed={7}
+            result="noise"
+          />
+          <feGaussianBlur in="noise" stdDeviation="1.5" result="softNoise" />
+          <feDisplacementMap
+            in="SourceGraphic"
+            in2="softNoise"
+            scale={26}
+            xChannelSelector="R"
+            yChannelSelector="G"
+          />
+        </filter>
+      </svg>
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 [backdrop-filter:url(#dialog-refraction)] motion-reduce:hidden"
+      />
+    </DialogPrimitive.Overlay>
   )
 }
 
@@ -62,7 +86,7 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-var(--spacing)*8)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 outline-none sm:max-w-sm",
+          "fixed top-1/2 left-1/2 z-50 grid max-h-[calc(100dvh-var(--spacing)*6)] w-full max-w-[calc(100%-var(--spacing)*8)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 outline-none sm:max-w-sm",
           className
         )}
         {...props}
@@ -72,7 +96,7 @@ function DialogContent({
           <DialogPrimitive.Close data-slot="dialog-close" asChild>
             <Button
               variant="ghost"
-              className="absolute top-2 right-2"
+              className="order-first -mb-2 shrink-0 self-end justify-self-end sm:absolute sm:top-2 sm:right-2 sm:order-0 sm:mb-0"
               size="icon-sm"
             >
               <HugeiconsIcon

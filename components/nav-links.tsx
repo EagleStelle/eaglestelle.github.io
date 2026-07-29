@@ -80,7 +80,7 @@ function NavButton({
   const button = (
     <Button
       asChild
-      variant={active ? "glass-accent" : "ghost"}
+      variant={active ? "default" : "ghost"}
       size="text-only"
       className={className}
     >

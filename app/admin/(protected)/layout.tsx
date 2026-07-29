@@ -45,7 +45,7 @@ export default async function ProtectedAdminLayout({
 
           <Button
             asChild
-            variant="glass"
+            variant="secondary"
             size="icon-text"
             className="hidden sm:inline-flex"
           >

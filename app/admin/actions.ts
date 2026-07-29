@@ -7,9 +7,11 @@ import { prisma } from "@/lib/prisma";
 import { destroySession, requireAdmin } from "@/lib/auth";
 import { normalizeThemeColor } from "@/lib/appearance";
 import {
+  parseProjectImageEntries,
   parseProjectImages,
   parseProjectList,
-  serializeProjectList,
+  serializeProjectImages,
+  type ProjectImage,
 } from "@/lib/project-data";
 
 function text(formData: FormData, key: string): string {
@@ -55,8 +57,8 @@ function refresh(path: string): void {
   revalidatePath(path);
 }
 
-function projectImages(formData: FormData): string[] {
-  const images = parseProjectList(text(formData, "imageUrls"));
+function projectImages(formData: FormData): ProjectImage[] {
+  const images = parseProjectImageEntries(text(formData, "imageUrls"));
   if (images.length === 0) {
     throw new Error("Add at least one project image.");
   }
@@ -161,8 +163,8 @@ export async function createProject(formData: FormData): Promise<void> {
     data: {
       title: text(formData, "title"),
       description: text(formData, "description"),
-      imageUrl: images[0],
-      imageUrls: serializeProjectList(images),
+      imageUrl: images[0].url,
+      imageUrls: serializeProjectImages(images),
       techStack: parseProjectList(text(formData, "techStack")).join("\n"),
       projectUrl: optionalText(formData, "projectUrl"),
       sourceUrl: optionalText(formData, "sourceUrl"),
@@ -188,7 +190,7 @@ export async function updateProject(formData: FormData): Promise<void> {
         imageUrl: existing.imageUrl,
         imageUrls: existing.imageUrls,
       }),
-      images,
+      images.map((image) => image.url),
     );
   }
 
@@ -197,8 +199,8 @@ export async function updateProject(formData: FormData): Promise<void> {
     data: {
       title: text(formData, "title"),
       description: text(formData, "description"),
-      imageUrl: images[0],
-      imageUrls: serializeProjectList(images),
+      imageUrl: images[0].url,
+      imageUrls: serializeProjectImages(images),
       techStack: parseProjectList(text(formData, "techStack")).join("\n"),
       projectUrl: optionalText(formData, "projectUrl"),
       sourceUrl: optionalText(formData, "sourceUrl"),

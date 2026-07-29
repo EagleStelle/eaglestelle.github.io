@@ -12,6 +12,8 @@ import {
 } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import type { ProjectImage } from "@/lib/project-data";
 
 const MAX_BYTES = 8 * 1024 * 1024;
 const ACCEPTED = "image/jpeg,image/png,image/webp,image/avif";
@@ -20,7 +22,7 @@ type Props = {
   name: string;
   folder: string;
   label: string;
-  defaultValue?: string[];
+  defaultValue?: ProjectImage[];
   required?: boolean;
 };
 
@@ -31,7 +33,7 @@ export function ImageGalleryUpload({
   defaultValue = [],
   required = false,
 }: Props) {
-  const [urls, setUrls] = useState(defaultValue);
+  const [images, setImages] = useState(defaultValue);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -61,11 +63,11 @@ export function ImageGalleryUpload({
               handleUploadUrl: "/api/blob/upload",
             },
           );
-          return blob.url;
+          return { url: blob.url, title: "", description: "" };
         }),
       );
 
-      setUrls((items) => [...items, ...uploaded]);
+      setImages((items) => [...items, ...uploaded]);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Upload failed.");
     } finally {
@@ -75,7 +77,7 @@ export function ImageGalleryUpload({
   }
 
   function move(index: number, direction: -1 | 1) {
-    setUrls((items) => {
+    setImages((items) => {
       const next = [...items];
       const target = index + direction;
       if (target < 0 || target >= next.length) return items;
@@ -85,7 +87,15 @@ export function ImageGalleryUpload({
   }
 
   function remove(index: number) {
-    setUrls((items) => items.filter((_, itemIndex) => itemIndex !== index));
+    setImages((items) => items.filter((_, itemIndex) => itemIndex !== index));
+  }
+
+  function edit(index: number, field: "title" | "description", value: string) {
+    setImages((items) =>
+      items.map((item, itemIndex) =>
+        itemIndex === index ? { ...item, [field]: value } : item,
+      ),
+    );
   }
 
   return (
@@ -93,7 +103,7 @@ export function ImageGalleryUpload({
       <span className="font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase">
         {label}
       </span>
-      <input type="hidden" name={name} value={JSON.stringify(urls)} />
+      <input type="hidden" name={name} value={JSON.stringify(images)} />
 
       <Input
         type="file"
@@ -101,23 +111,43 @@ export function ImageGalleryUpload({
         multiple
         onChange={handleChange}
         disabled={busy}
-        required={required && urls.length === 0}
+        required={required && images.length === 0}
         className="cursor-pointer file:mr-3 file:cursor-pointer file:text-sm"
       />
 
-      {urls.length > 0 ? (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {urls.map((url, index) => (
-            <div key={url} className="flex flex-col gap-2">
+      {images.length > 0 ? (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {images.map((image, index) => (
+            <div
+              key={image.url}
+              className="flex flex-col gap-2 rounded-lg border border-border p-3"
+            >
               <div className="relative aspect-square overflow-hidden rounded-lg border border-border bg-muted/40">
                 <Image
-                  src={url}
+                  src={image.url}
                   alt=""
                   fill
                   className="object-cover"
-                  sizes="(min-width: 1024px) 20vw, 50vw"
+                  sizes="(min-width: 1280px) 28vw, (min-width: 640px) 45vw, 90vw"
                 />
               </div>
+
+              <Input
+                value={image.title}
+                onChange={(event) => edit(index, "title", event.target.value)}
+                placeholder="Image title"
+                aria-label={`Image ${index + 1} title`}
+              />
+              <Textarea
+                value={image.description}
+                onChange={(event) =>
+                  edit(index, "description", event.target.value)
+                }
+                placeholder="Image description"
+                aria-label={`Image ${index + 1} description`}
+                className="min-h-20"
+              />
+
               <div className="flex items-center gap-1">
                 <Button
                   type="button"
@@ -137,7 +167,7 @@ export function ImageGalleryUpload({
                   type="button"
                   variant="outline"
                   size="icon-sm"
-                  disabled={index === urls.length - 1}
+                  disabled={index === images.length - 1}
                   onClick={() => move(index, 1)}
                 >
                   <HugeiconsIcon
