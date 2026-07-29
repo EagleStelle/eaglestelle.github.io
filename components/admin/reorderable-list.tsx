@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition, type ReactNode } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -34,14 +34,18 @@ export function ReorderableList({
   entityType,
   className = "flex flex-col gap-4",
 }: Props) {
-  const [list, setList] = useState<ReorderableItem[]>(items);
+  const [listState, setListState] = useState<{
+    sourceItems: ReorderableItem[];
+    list: ReorderableItem[];
+  }>({ sourceItems: items, list: items });
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [isPending, startTransition] = useTransition();
+  const list = listState.sourceItems === items ? listState.list : items;
 
-  useEffect(() => {
-    setList(items);
-  }, [items]);
+  function setList(list: ReorderableItem[]) {
+    setListState({ sourceItems: items, list });
+  }
 
   function handleSaveReorder(newList: ReorderableItem[]) {
     setList(newList);

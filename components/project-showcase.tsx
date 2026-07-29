@@ -86,6 +86,19 @@ function ProjectTileActions({
 
   return (
     <div className="flex shrink-0 items-center gap-1.5">
+      {projectUrl && (
+        <Button asChild size="icon-only" className={tileButtonClass}>
+          <a
+            href={projectUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={stopCardOpen}
+          >
+            <UiIcon icon={Globe02Icon} />
+            <span className="sr-only">Live</span>
+          </a>
+        </Button>
+      )}
       {sourceUrl && (
         <Button
           asChild
@@ -100,20 +113,7 @@ function ProjectTileActions({
             onClick={stopCardOpen}
           >
             <UiIcon icon={Github01Icon} />
-            <span className="sr-only">Source</span>
-          </a>
-        </Button>
-      )}
-      {projectUrl && (
-        <Button asChild size="icon-only" className={tileButtonClass}>
-          <a
-            href={projectUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={stopCardOpen}
-          >
-            <UiIcon icon={Globe02Icon} />
-            <span className="sr-only">Live</span>
+            <span className="sr-only">Source code</span>
           </a>
         </Button>
       )}
@@ -154,7 +154,7 @@ function ProjectActions({
             onClick={stopCardOpen}
           >
             <UiIcon icon={Github01Icon} />
-            Source
+            Source code
           </a>
         </Button>
       )}

@@ -2,6 +2,7 @@ import ImageUpload from "@/components/ImageUpload";
 import { DatePickerInput } from "@/components/date-picker-input";
 import { ActionForm } from "@/components/admin/action-form";
 import { DeleteDialog } from "@/components/admin/delete-dialog";
+import { OptionCombobox } from "@/components/admin/option-combobox";
 import { ReorderableList } from "@/components/admin/reorderable-list";
 import { Field, PrimaryButton, TextArea, TextInput } from "@/components/form";
 import { Separator } from "@/components/ui/separator";
@@ -11,6 +12,17 @@ import {
   deleteExperience,
   updateExperience,
 } from "@/app/admin/actions";
+
+const employmentTypeOptions = [
+  "Full-time",
+  "Part-time",
+  "Contract",
+  "Freelance",
+  "Internship",
+  "Self-employed",
+];
+
+const locationTypeOptions = ["On-site", "Hybrid", "Remote"];
 
 export default async function AdminExperiencePage() {
   const experience = await prisma.experience.findMany({
@@ -40,8 +52,21 @@ export default async function AdminExperiencePage() {
           <Field label="Company">
             <TextInput name="company" required />
           </Field>
-          <Field label="Location">
-            <TextInput name="location" />
+          <Field label="Employment Type">
+            <OptionCombobox
+              name="employmentType"
+              options={employmentTypeOptions}
+              placeholder="Select employment type"
+              emptyMessage="No employment types found."
+            />
+          </Field>
+          <Field label="Location Type">
+            <OptionCombobox
+              name="locationType"
+              options={locationTypeOptions}
+              placeholder="Select location type"
+              emptyMessage="No location types found."
+            />
           </Field>
           <Field label="Start Date">
             <DatePickerInput name="startDate" />
@@ -101,8 +126,23 @@ export default async function AdminExperiencePage() {
                         required
                       />
                     </Field>
-                    <Field label="Location">
-                      <TextInput name="location" defaultValue={item.location ?? ""} />
+                    <Field label="Employment Type">
+                      <OptionCombobox
+                        name="employmentType"
+                        options={employmentTypeOptions}
+                        defaultValue={item.employmentType ?? ""}
+                        placeholder="Select employment type"
+                        emptyMessage="No employment types found."
+                      />
+                    </Field>
+                    <Field label="Location Type">
+                      <OptionCombobox
+                        name="locationType"
+                        options={locationTypeOptions}
+                        defaultValue={item.locationType ?? ""}
+                        placeholder="Select location type"
+                        emptyMessage="No location types found."
+                      />
                     </Field>
                     <Field label="Start Date">
                       <DatePickerInput

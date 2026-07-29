@@ -14,11 +14,8 @@ model Profile {
   summary     String
   resumeUrl   String?
   email       String
-  phone       String?
-  location    String?
   githubUrl   String?
   linkedinUrl String?
-  websiteUrl  String?
   themeColor  String   @default("rose")
   updatedAt   DateTime @updatedAt
 }
@@ -53,17 +50,18 @@ model Project {
 }
 
 model Experience {
-  id          Int      @id @default(autoincrement())
-  role        String
-  company     String
-  logoUrl     String?
-  location    String?
-  startDate   String?
-  endDate     String?
-  description String
-  order       Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             Int      @id @default(autoincrement())
+  role           String
+  company        String
+  logoUrl        String?
+  employmentType String?
+  locationType   String?
+  startDate      String?
+  endDate        String?
+  description    String
+  order          Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 model Education {
@@ -71,7 +69,6 @@ model Education {
   degree      String
   institution String
   logoUrl     String?
-  location    String?
   startDate   String?
   endDate     String?
   description String

@@ -6,7 +6,6 @@ import {
   ArrowUpRight01Icon,
   File01Icon,
   Github01Icon,
-  Globe02Icon,
   Linkedin01Icon,
   Mail01Icon,
 } from "@hugeicons/core-free-icons";
@@ -174,11 +173,6 @@ export default async function Home() {
       icon: Linkedin01Icon,
       name: "LinkedIn",
     },
-    profile.websiteUrl && {
-      href: profile.websiteUrl,
-      icon: Globe02Icon,
-      name: "Website",
-    },
   ].filter(
     (link): link is { href: string; icon: IconSvgElement; name: string } =>
       Boolean(link),
@@ -213,7 +207,8 @@ export default async function Home() {
     subtitle: item.company,
     description: item.description,
     logoUrl: item.logoUrl,
-    location: item.location,
+    employmentType: item.employmentType,
+    locationType: item.locationType,
     startDate: item.startDate,
     endDate: item.endDate,
   }));
@@ -224,7 +219,6 @@ export default async function Home() {
     subtitle: item.institution,
     description: item.description,
     logoUrl: item.logoUrl,
-    location: item.location,
     startDate: item.startDate,
     endDate: item.endDate,
   }));

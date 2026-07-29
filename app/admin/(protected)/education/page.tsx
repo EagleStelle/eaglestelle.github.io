@@ -40,9 +40,6 @@ export default async function AdminEducationPage() {
           <Field label="Institution">
             <TextInput name="institution" required />
           </Field>
-          <Field label="Location">
-            <TextInput name="location" />
-          </Field>
           <Field label="Start Date">
             <DatePickerInput name="startDate" />
           </Field>
@@ -100,9 +97,6 @@ export default async function AdminEducationPage() {
                         defaultValue={item.institution}
                         required
                       />
-                    </Field>
-                    <Field label="Location">
-                      <TextInput name="location" defaultValue={item.location ?? ""} />
                     </Field>
                     <Field label="Start Date">
                       <DatePickerInput

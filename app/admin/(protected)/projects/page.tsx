@@ -40,18 +40,27 @@ export default async function AdminProjectsPage() {
         />
 
         <div className="grid gap-5 sm:grid-cols-2">
-          <Field label="Title">
-            <TextInput name="title" required />
-          </Field>
+          <div className="sm:col-span-2">
+            <Field label="Title">
+              <TextInput name="title" required />
+            </Field>
+          </div>
           <Field label="Start Date">
             <DatePickerInput name="startDate" />
           </Field>
           <Field label="End Date">
             <DatePickerInput name="endDate" />
           </Field>
-          <Field label="Live URL">
-            <TextInput type="url" name="projectUrl" />
-          </Field>
+          <div className="sm:col-span-2">
+            <Field label="Live URL">
+              <TextInput type="url" name="projectUrl" />
+            </Field>
+          </div>
+          <div className="sm:col-span-2">
+            <Field label="Source Code URL">
+              <TextInput type="url" name="sourceUrl" />
+            </Field>
+          </div>
         </div>
 
         <Field label="Tech Stack (one per line)">
@@ -60,10 +69,6 @@ export default async function AdminProjectsPage() {
 
         <Field label="Description">
           <TextArea name="description" required />
-        </Field>
-
-        <Field label="Source Code URL">
-          <TextInput type="url" name="sourceUrl" />
         </Field>
 
         <div>
@@ -106,20 +111,15 @@ export default async function AdminProjectsPage() {
                   />
 
                   <div className="grid gap-5 sm:grid-cols-2">
-                    <Field label="Title">
-                      <TextInput
-                        name="title"
-                        defaultValue={project.title}
-                        required
-                      />
-                    </Field>
-                    <Field label="Live URL">
-                      <TextInput
-                        type="url"
-                        name="projectUrl"
-                        defaultValue={project.projectUrl ?? ""}
-                      />
-                    </Field>
+                    <div className="sm:col-span-2">
+                      <Field label="Title">
+                        <TextInput
+                          name="title"
+                          defaultValue={project.title}
+                          required
+                        />
+                      </Field>
+                    </div>
                     <Field label="Start Date">
                       <DatePickerInput
                         name="startDate"
@@ -132,6 +132,24 @@ export default async function AdminProjectsPage() {
                         defaultValue={project.endDate ?? ""}
                       />
                     </Field>
+                    <div className="sm:col-span-2">
+                      <Field label="Live URL">
+                        <TextInput
+                          type="url"
+                          name="projectUrl"
+                          defaultValue={project.projectUrl ?? ""}
+                        />
+                      </Field>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <Field label="Source Code URL">
+                        <TextInput
+                          type="url"
+                          name="sourceUrl"
+                          defaultValue={project.sourceUrl ?? ""}
+                        />
+                      </Field>
+                    </div>
                   </div>
 
                   <Field label="Tech Stack">
@@ -146,14 +164,6 @@ export default async function AdminProjectsPage() {
                       name="description"
                       defaultValue={project.description}
                       required
-                    />
-                  </Field>
-
-                  <Field label="Source Code URL">
-                    <TextInput
-                      type="url"
-                      name="sourceUrl"
-                      defaultValue={project.sourceUrl ?? ""}
                     />
                   </Field>
 

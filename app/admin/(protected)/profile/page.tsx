@@ -46,12 +46,6 @@ export default async function AdminProfilePage() {
             required
           />
         </Field>
-        <Field label="Phone">
-          <TextInput name="phone" defaultValue={profile?.phone ?? ""} />
-        </Field>
-        <Field label="Location">
-          <TextInput name="location" defaultValue={profile?.location ?? ""} />
-        </Field>
         <Field label="Resume URL">
           <TextInput
             type="url"
@@ -71,13 +65,6 @@ export default async function AdminProfilePage() {
             type="url"
             name="linkedinUrl"
             defaultValue={profile?.linkedinUrl ?? ""}
-          />
-        </Field>
-        <Field label="Website URL">
-          <TextInput
-            type="url"
-            name="websiteUrl"
-            defaultValue={profile?.websiteUrl ?? ""}
           />
         </Field>
       </div>
