@@ -54,8 +54,8 @@ export function DeleteDialog({
       <DialogTrigger asChild>
         <Button
           type="button"
-          variant="outline"
-          className="rounded-full border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+          variant="destructive"
+          size="text-only"
         >
           {trigger}
         </Button>

@@ -2,7 +2,9 @@ import { ImageGalleryUpload } from "@/components/image-gallery-upload";
 import { DatePickerInput } from "@/components/date-picker-input";
 import { ActionForm } from "@/components/admin/action-form";
 import { DeleteDialog } from "@/components/admin/delete-dialog";
+import { ReorderableList } from "@/components/admin/reorderable-list";
 import { Field, PrimaryButton, TextArea, TextInput } from "@/components/form";
+import { Separator } from "@/components/ui/separator";
 import { prisma } from "@/lib/prisma";
 import { formatProjectList, parseProjectImageList } from "@/lib/project-data";
 import {
@@ -18,16 +20,17 @@ export default async function AdminProjectsPage() {
 
   return (
     <div className="flex flex-col gap-10">
-      <h1 className="font-display text-4xl tracking-tight">Projects</h1>
-
       <ActionForm
         action={createProject}
         success="Project added."
         className="flex flex-col gap-5"
       >
-        <h2 className="font-mono text-[11px] tracking-[0.2em] text-muted-foreground uppercase">
-          Add a project
-        </h2>
+        <div className="flex flex-col gap-2">
+          <span className="font-mono text-[11px] tracking-[0.2em] text-muted-foreground uppercase">
+            Add New Project
+          </span>
+          <Separator />
+        </div>
 
         <ImageGalleryUpload
           name="imageUrls"
@@ -40,18 +43,18 @@ export default async function AdminProjectsPage() {
           <Field label="Title">
             <TextInput name="title" required />
           </Field>
-          <Field label="Order">
-            <TextInput type="number" name="order" defaultValue={0} />
-          </Field>
-          <Field label="Start">
+          <Field label="Start Date">
             <DatePickerInput name="startDate" />
           </Field>
-          <Field label="End">
+          <Field label="End Date">
             <DatePickerInput name="endDate" />
+          </Field>
+          <Field label="Live URL">
+            <TextInput type="url" name="projectUrl" />
           </Field>
         </div>
 
-        <Field label="Tech stack">
+        <Field label="Tech Stack (one per line)">
           <TextArea name="techStack" />
         </Field>
 
@@ -59,125 +62,116 @@ export default async function AdminProjectsPage() {
           <TextArea name="description" required />
         </Field>
 
-        <div className="grid gap-5 sm:grid-cols-2">
-          <Field label="Live URL">
-            <TextInput type="url" name="projectUrl" />
-          </Field>
-          <Field label="Source URL">
-            <TextInput type="url" name="sourceUrl" />
-          </Field>
-        </div>
+        <Field label="Source Code URL">
+          <TextInput type="url" name="sourceUrl" />
+        </Field>
 
         <div>
-          <PrimaryButton type="submit">Add project</PrimaryButton>
+          <PrimaryButton type="submit">Add Project</PrimaryButton>
         </div>
       </ActionForm>
 
-      <div className="flex flex-col gap-6">
-        <h2 className="font-mono text-[11px] tracking-[0.2em] text-muted-foreground uppercase">
-          {projects.length} saved
-        </h2>
+      <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-2">
+          <span className="font-mono text-[11px] tracking-[0.2em] text-muted-foreground uppercase">
+            Saved Projects ({projects.length})
+          </span>
+          <Separator />
+        </div>
 
-        {projects.map((project) => (
-          <div
-            key={project.id}
-            className="flex flex-col gap-5 border-t border-border pt-6"
-          >
-            <ActionForm
-              action={updateProject}
-              success="Project saved."
-              className="flex flex-col gap-5"
-            >
-              <input type="hidden" name="id" value={project.id} />
+        <ReorderableList
+          entityType="project"
+          items={projects.map((project) => ({
+            id: project.id,
+            order: project.order,
+            content: (
+              <div className="flex flex-col gap-5">
+                <ActionForm
+                  action={updateProject}
+                  success="Project saved."
+                  className="flex flex-col gap-5"
+                >
+                  <input type="hidden" name="id" value={project.id} />
+                  <input type="hidden" name="order" value={project.order} />
 
-              <ImageGalleryUpload
-                name="imageUrls"
-                folder="projects"
-                label="Images"
-                defaultValue={parseProjectImageList({
-                  imageUrl: project.imageUrl,
-                  imageUrls: project.imageUrls,
-                })}
-                required
-              />
-
-              <div className="grid gap-5 sm:grid-cols-2">
-                <Field label="Title">
-                  <TextInput
-                    name="title"
-                    defaultValue={project.title}
+                  <ImageGalleryUpload
+                    name="imageUrls"
+                    folder="projects"
+                    label="Images"
+                    defaultValue={parseProjectImageList({
+                      imageUrl: project.imageUrl,
+                      imageUrls: project.imageUrls,
+                    })}
                     required
                   />
-                </Field>
-                <Field label="Order">
-                  <TextInput
-                    type="number"
-                    name="order"
-                    defaultValue={project.order}
-                  />
-                </Field>
-                <Field label="Start">
-                  <DatePickerInput
-                    name="startDate"
-                    defaultValue={project.startDate ?? ""}
-                  />
-                </Field>
-                <Field label="End">
-                  <DatePickerInput
-                    name="endDate"
-                    defaultValue={project.endDate ?? ""}
-                  />
-                </Field>
+
+                  <div className="grid gap-5 sm:grid-cols-2">
+                    <Field label="Title">
+                      <TextInput
+                        name="title"
+                        defaultValue={project.title}
+                        required
+                      />
+                    </Field>
+                    <Field label="Live URL">
+                      <TextInput
+                        type="url"
+                        name="projectUrl"
+                        defaultValue={project.projectUrl ?? ""}
+                      />
+                    </Field>
+                    <Field label="Start Date">
+                      <DatePickerInput
+                        name="startDate"
+                        defaultValue={project.startDate ?? ""}
+                      />
+                    </Field>
+                    <Field label="End Date">
+                      <DatePickerInput
+                        name="endDate"
+                        defaultValue={project.endDate ?? ""}
+                      />
+                    </Field>
+                  </div>
+
+                  <Field label="Tech Stack">
+                    <TextArea
+                      name="techStack"
+                      defaultValue={formatProjectList(project.techStack)}
+                    />
+                  </Field>
+
+                  <Field label="Description">
+                    <TextArea
+                      name="description"
+                      defaultValue={project.description}
+                      required
+                    />
+                  </Field>
+
+                  <Field label="Source Code URL">
+                    <TextInput
+                      type="url"
+                      name="sourceUrl"
+                      defaultValue={project.sourceUrl ?? ""}
+                    />
+                  </Field>
+
+                  <div className="flex items-center justify-between pt-2">
+                    <PrimaryButton type="submit">Save Changes</PrimaryButton>
+                    <DeleteDialog
+                      id={project.id}
+                      action={deleteProject}
+                      trigger="Delete Project"
+                      title={`Delete "${project.title}"?`}
+                      description="This also deletes the project images from blob storage. It cannot be undone."
+                    />
+                  </div>
+                </ActionForm>
               </div>
-
-              <Field label="Tech stack">
-                <TextArea
-                  name="techStack"
-                  defaultValue={formatProjectList(project.techStack)}
-                />
-              </Field>
-
-              <Field label="Description">
-                <TextArea
-                  name="description"
-                  defaultValue={project.description}
-                  required
-                />
-              </Field>
-
-              <div className="grid gap-5 sm:grid-cols-2">
-                <Field label="Live URL">
-                  <TextInput
-                    type="url"
-                    name="projectUrl"
-                    defaultValue={project.projectUrl ?? ""}
-                  />
-                </Field>
-                <Field label="Source URL">
-                  <TextInput
-                    type="url"
-                    name="sourceUrl"
-                    defaultValue={project.sourceUrl ?? ""}
-                  />
-                </Field>
-              </div>
-
-              <div>
-                <PrimaryButton type="submit">Save</PrimaryButton>
-              </div>
-            </ActionForm>
-
-            <div>
-              <DeleteDialog
-                id={project.id}
-                action={deleteProject}
-                trigger="Delete project"
-                title={`Delete "${project.title}"?`}
-                description="This also deletes the project images from blob storage. It cannot be undone."
-              />
-            </div>
-          </div>
-        ))}
+            ),
+          }))}
+        />
       </div>
     </div>
   );

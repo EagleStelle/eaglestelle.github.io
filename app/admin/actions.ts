@@ -94,6 +94,37 @@ async function saveSkillCategoryOption(name: string | null): Promise<void> {
   });
 }
 
+async function getNextOrder(
+  entity: "skill" | "skillCategory" | "project" | "experience" | "education" | "certification",
+  providedOrder?: number,
+): Promise<number> {
+  if (providedOrder && providedOrder !== 0) {
+    return providedOrder;
+  }
+  let maxItem: { order: number } | null = null;
+  switch (entity) {
+    case "skill":
+      maxItem = await prisma.skill.findFirst({ orderBy: { order: "desc" }, select: { order: true } });
+      break;
+    case "skillCategory":
+      maxItem = await prisma.skillCategory.findFirst({ orderBy: { order: "desc" }, select: { order: true } });
+      break;
+    case "project":
+      maxItem = await prisma.project.findFirst({ orderBy: { order: "desc" }, select: { order: true } });
+      break;
+    case "experience":
+      maxItem = await prisma.experience.findFirst({ orderBy: { order: "desc" }, select: { order: true } });
+      break;
+    case "education":
+      maxItem = await prisma.education.findFirst({ orderBy: { order: "desc" }, select: { order: true } });
+      break;
+    case "certification":
+      maxItem = await prisma.certification.findFirst({ orderBy: { order: "desc" }, select: { order: true } });
+      break;
+  }
+  return maxItem ? maxItem.order + 1 : 0;
+}
+
 export async function logout(): Promise<void> {
   await destroySession();
   redirect("/admin/login");
@@ -141,11 +172,14 @@ export async function createSkill(formData: FormData): Promise<void> {
   const category = optionalText(formData, "category");
   await saveSkillCategoryOption(category);
 
+  const providedOrder = integer(formData, "order");
+  const order = await getNextOrder("skill", providedOrder);
+
   await prisma.skill.create({
     data: {
       name: text(formData, "name"),
       category,
-      order: integer(formData, "order"),
+      order,
     },
   });
 
@@ -188,10 +222,13 @@ export async function createSkillCategory(formData: FormData): Promise<void> {
     throw new Error("A category with that name already exists.");
   }
 
+  const providedOrder = integer(formData, "order");
+  const order = await getNextOrder("skillCategory", providedOrder);
+
   await prisma.skillCategory.create({
     data: {
       name,
-      order: integer(formData, "order"),
+      order,
     },
   });
 
@@ -254,6 +291,8 @@ export async function createProject(formData: FormData): Promise<void> {
   await requireAdmin();
 
   const images = projectImages(formData);
+  const providedOrder = integer(formData, "order");
+  const order = await getNextOrder("project", providedOrder);
 
   await prisma.project.create({
     data: {
@@ -266,7 +305,7 @@ export async function createProject(formData: FormData): Promise<void> {
       sourceUrl: optionalText(formData, "sourceUrl"),
       startDate: optionalText(formData, "startDate"),
       endDate: optionalText(formData, "endDate"),
-      order: integer(formData, "order"),
+      order,
     },
   });
 
@@ -328,6 +367,9 @@ export async function deleteProject(formData: FormData): Promise<void> {
 export async function createExperience(formData: FormData): Promise<void> {
   await requireAdmin();
 
+  const providedOrder = integer(formData, "order");
+  const order = await getNextOrder("experience", providedOrder);
+
   await prisma.experience.create({
     data: {
       role: text(formData, "role"),
@@ -337,7 +379,7 @@ export async function createExperience(formData: FormData): Promise<void> {
       startDate: optionalText(formData, "startDate"),
       endDate: optionalText(formData, "endDate"),
       description: text(formData, "description"),
-      order: integer(formData, "order"),
+      order,
     },
   });
 
@@ -386,6 +428,9 @@ export async function deleteExperience(formData: FormData): Promise<void> {
 export async function createEducation(formData: FormData): Promise<void> {
   await requireAdmin();
 
+  const providedOrder = integer(formData, "order");
+  const order = await getNextOrder("education", providedOrder);
+
   await prisma.education.create({
     data: {
       degree: text(formData, "degree"),
@@ -395,7 +440,7 @@ export async function createEducation(formData: FormData): Promise<void> {
       startDate: optionalText(formData, "startDate"),
       endDate: optionalText(formData, "endDate"),
       description: text(formData, "description"),
-      order: integer(formData, "order"),
+      order,
     },
   });
 
@@ -444,6 +489,9 @@ export async function deleteEducation(formData: FormData): Promise<void> {
 export async function createCertification(formData: FormData): Promise<void> {
   await requireAdmin();
 
+  const providedOrder = integer(formData, "order");
+  const order = await getNextOrder("certification", providedOrder);
+
   await prisma.certification.create({
     data: {
       title: text(formData, "title"),
@@ -451,7 +499,7 @@ export async function createCertification(formData: FormData): Promise<void> {
       imageUrl: text(formData, "imageUrl"),
       certificationUrl: optionalText(formData, "certificationUrl"),
       issuedAt: optionalDate(formData, "issuedAt"),
-      order: integer(formData, "order"),
+      order,
     },
   });
 
@@ -493,4 +541,47 @@ export async function deleteCertification(formData: FormData): Promise<void> {
   await removeBlob(deleted.imageUrl);
 
   refresh("/admin/certifications");
+}
+
+export async function reorderItems(
+  entityType: "skill" | "skillCategory" | "project" | "experience" | "education" | "certification",
+  orderedIds: number[],
+): Promise<void> {
+  await requireAdmin();
+
+  if (!Array.isArray(orderedIds) || orderedIds.length === 0) return;
+
+  const updates = orderedIds.map((id, index) => {
+    switch (entityType) {
+      case "skill":
+        return prisma.skill.update({ where: { id }, data: { order: index } });
+      case "skillCategory":
+        return prisma.skillCategory.update({ where: { id }, data: { order: index } });
+      case "project":
+        return prisma.project.update({ where: { id }, data: { order: index } });
+      case "experience":
+        return prisma.experience.update({ where: { id }, data: { order: index } });
+      case "education":
+        return prisma.education.update({ where: { id }, data: { order: index } });
+      case "certification":
+        return prisma.certification.update({ where: { id }, data: { order: index } });
+      default:
+        throw new Error("Invalid entity type for reordering.");
+    }
+  });
+
+  await prisma.$transaction(updates);
+
+  const refreshMap: Record<string, string> = {
+    skill: "/admin/skills",
+    skillCategory: "/admin/skills",
+    project: "/admin/projects",
+    experience: "/admin/experience",
+    education: "/admin/education",
+    certification: "/admin/certifications",
+  };
+
+  if (refreshMap[entityType]) {
+    refresh(refreshMap[entityType]);
+  }
 }

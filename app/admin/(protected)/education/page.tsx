@@ -2,7 +2,9 @@ import ImageUpload from "@/components/ImageUpload";
 import { DatePickerInput } from "@/components/date-picker-input";
 import { ActionForm } from "@/components/admin/action-form";
 import { DeleteDialog } from "@/components/admin/delete-dialog";
+import { ReorderableList } from "@/components/admin/reorderable-list";
 import { Field, PrimaryButton, TextArea, TextInput } from "@/components/form";
+import { Separator } from "@/components/ui/separator";
 import { prisma } from "@/lib/prisma";
 import {
   createEducation,
@@ -17,18 +19,19 @@ export default async function AdminEducationPage() {
 
   return (
     <div className="flex flex-col gap-10">
-      <h1 className="font-display text-4xl tracking-tight">Education</h1>
-
       <ActionForm
         action={createEducation}
         success="Education added."
         className="flex flex-col gap-5"
       >
-        <h2 className="font-mono text-[11px] tracking-[0.2em] text-muted-foreground uppercase">
-          Add education
-        </h2>
+        <div className="flex flex-col gap-2">
+          <span className="font-mono text-[11px] tracking-[0.2em] text-muted-foreground uppercase">
+            Add Education
+          </span>
+          <Separator />
+        </div>
 
-        <ImageUpload name="logoUrl" folder="education" label="School logo" />
+        <ImageUpload name="logoUrl" folder="education" label="School / Institution Logo" />
 
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Degree">
@@ -40,13 +43,10 @@ export default async function AdminEducationPage() {
           <Field label="Location">
             <TextInput name="location" />
           </Field>
-          <Field label="Order">
-            <TextInput type="number" name="order" defaultValue={0} />
-          </Field>
-          <Field label="Start">
+          <Field label="Start Date">
             <DatePickerInput name="startDate" />
           </Field>
-          <Field label="End">
+          <Field label="End Date">
             <DatePickerInput name="endDate" />
           </Field>
         </div>
@@ -56,93 +56,91 @@ export default async function AdminEducationPage() {
         </Field>
 
         <div>
-          <PrimaryButton type="submit">Add education</PrimaryButton>
+          <PrimaryButton type="submit">Add Education</PrimaryButton>
         </div>
       </ActionForm>
 
-      <div className="flex flex-col gap-6">
-        <h2 className="font-mono text-[11px] tracking-[0.2em] text-muted-foreground uppercase">
-          {education.length} saved
-        </h2>
+      <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-2">
+          <span className="font-mono text-[11px] tracking-[0.2em] text-muted-foreground uppercase">
+            Saved Education ({education.length})
+          </span>
+          <Separator />
+        </div>
 
-        {education.map((item) => (
-          <div
-            key={item.id}
-            className="flex flex-col gap-5 border-t border-border pt-6"
-          >
-            <ActionForm
-              action={updateEducation}
-              success="Education saved."
-              className="flex flex-col gap-5"
-            >
-              <input type="hidden" name="id" value={item.id} />
+        <ReorderableList
+          entityType="education"
+          items={education.map((item) => ({
+            id: item.id,
+            order: item.order,
+            content: (
+              <div className="flex flex-col gap-5">
+                <ActionForm
+                  action={updateEducation}
+                  success="Education saved."
+                  className="flex flex-col gap-5"
+                >
+                  <input type="hidden" name="id" value={item.id} />
+                  <input type="hidden" name="order" value={item.order} />
 
-              <ImageUpload
-                name="logoUrl"
-                folder="education"
-                label="School logo"
-                defaultValue={item.logoUrl}
-              />
+                  <ImageUpload
+                    name="logoUrl"
+                    folder="education"
+                    label="School Logo"
+                    defaultValue={item.logoUrl}
+                  />
 
-              <div className="grid gap-5 sm:grid-cols-2">
-                <Field label="Degree">
-                  <TextInput name="degree" defaultValue={item.degree} required />
-                </Field>
-                <Field label="Institution">
-                  <TextInput
-                    name="institution"
-                    defaultValue={item.institution}
-                    required
-                  />
-                </Field>
-                <Field label="Location">
-                  <TextInput name="location" defaultValue={item.location ?? ""} />
-                </Field>
-                <Field label="Order">
-                  <TextInput
-                    type="number"
-                    name="order"
-                    defaultValue={item.order}
-                  />
-                </Field>
-                <Field label="Start">
-                  <DatePickerInput
-                    name="startDate"
-                    defaultValue={item.startDate ?? ""}
-                  />
-                </Field>
-                <Field label="End">
-                  <DatePickerInput
-                    name="endDate"
-                    defaultValue={item.endDate ?? ""}
-                  />
-                </Field>
+                  <div className="grid gap-5 sm:grid-cols-2">
+                    <Field label="Degree">
+                      <TextInput name="degree" defaultValue={item.degree} required />
+                    </Field>
+                    <Field label="Institution">
+                      <TextInput
+                        name="institution"
+                        defaultValue={item.institution}
+                        required
+                      />
+                    </Field>
+                    <Field label="Location">
+                      <TextInput name="location" defaultValue={item.location ?? ""} />
+                    </Field>
+                    <Field label="Start Date">
+                      <DatePickerInput
+                        name="startDate"
+                        defaultValue={item.startDate ?? ""}
+                      />
+                    </Field>
+                    <Field label="End Date">
+                      <DatePickerInput
+                        name="endDate"
+                        defaultValue={item.endDate ?? ""}
+                      />
+                    </Field>
+                  </div>
+
+                  <Field label="Description">
+                    <TextArea
+                      name="description"
+                      defaultValue={item.description}
+                      required
+                    />
+                  </Field>
+
+                  <div className="flex items-center justify-between pt-2">
+                    <PrimaryButton type="submit">Save Changes</PrimaryButton>
+                    <DeleteDialog
+                      id={item.id}
+                      action={deleteEducation}
+                      trigger="Delete Education"
+                      title={`Delete "${item.degree}"?`}
+                      description="This removes the education from your public page. It cannot be undone."
+                    />
+                  </div>
+                </ActionForm>
               </div>
-
-              <Field label="Description">
-                <TextArea
-                  name="description"
-                  defaultValue={item.description}
-                  required
-                />
-              </Field>
-
-              <div>
-                <PrimaryButton type="submit">Save</PrimaryButton>
-              </div>
-            </ActionForm>
-
-            <div>
-              <DeleteDialog
-                id={item.id}
-                action={deleteEducation}
-                trigger="Delete education"
-                title={`Delete "${item.degree}"?`}
-                description="This removes the education from your public page. It cannot be undone."
-              />
-            </div>
-          </div>
-        ))}
+            ),
+          }))}
+        />
       </div>
     </div>
   );
