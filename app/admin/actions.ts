@@ -134,10 +134,15 @@ export async function saveProfile(formData: FormData): Promise<void> {
   await requireAdmin();
 
   const avatarUrl = optionalText(formData, "avatarUrl");
+  const resumeUrl = optionalText(formData, "resumeUrl");
   const existing = await prisma.profile.findUnique({ where: { id: 1 } });
 
   if (existing && existing.avatarUrl && existing.avatarUrl !== avatarUrl) {
     await removeBlob(existing.avatarUrl);
+  }
+
+  if (existing && existing.resumeUrl && existing.resumeUrl !== resumeUrl) {
+    await removeBlob(existing.resumeUrl);
   }
 
   const data = {
@@ -145,7 +150,7 @@ export async function saveProfile(formData: FormData): Promise<void> {
     headline: text(formData, "headline"),
     avatarUrl,
     summary: text(formData, "summary"),
-    resumeUrl: optionalText(formData, "resumeUrl"),
+    resumeUrl,
     email: text(formData, "email"),
     githubUrl: optionalText(formData, "githubUrl"),
     linkedinUrl: optionalText(formData, "linkedinUrl"),

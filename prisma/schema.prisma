@@ -86,3 +86,17 @@ model Certification {
   issuedAt         DateTime?
   order            Int       @default(0)
 }
+
+model AdminSecurity {
+  id            Int       @id @default(1)
+  totpSecret    String?
+  totpEnabledAt DateTime?
+  updatedAt     DateTime  @updatedAt
+}
+
+model RateLimit {
+  key       String   @id
+  count     Int      @default(0)
+  resetAt   DateTime
+  updatedAt DateTime @updatedAt
+}

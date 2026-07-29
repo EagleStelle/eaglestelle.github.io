@@ -1,4 +1,8 @@
 import { ActionForm } from "@/components/admin/action-form";
+import {
+  CategorizedSkills,
+  type SkillGroup,
+} from "@/components/admin/categorized-skills";
 import { DeleteDialog } from "@/components/admin/delete-dialog";
 import { ReorderableList } from "@/components/admin/reorderable-list";
 import { SkillCategoryCombobox } from "@/components/admin/skill-category-combobox";
@@ -8,9 +12,7 @@ import { prisma } from "@/lib/prisma";
 import {
   createSkill,
   createSkillCategory,
-  deleteSkill,
   deleteSkillCategory,
-  updateSkill,
   updateSkillCategory,
 } from "@/app/admin/actions";
 
@@ -40,9 +42,48 @@ export default async function AdminSkillsPage() {
     ),
   ];
 
+  // Group skills by category
+  const skillGroups: SkillGroup[] = [];
+  const handledCategories = new Set<string>();
+
+  // 1. Categories registered in SkillCategory (ordered by category.order)
+  for (const cat of skillCategories) {
+    handledCategories.add(cat.name);
+    skillGroups.push({
+      categoryName: cat.name,
+      isUncategorized: false,
+      skills: skills.filter((s) => s.category?.trim() === cat.name),
+    });
+  }
+
+  // 2. Extra categories present in skill.category but not in skillCategories
+  const extraCategories = uniqueCategoryNames(
+    skills.map((s) => s.category),
+  ).filter((cat) => !handledCategories.has(cat));
+
+  for (const catName of extraCategories) {
+    skillGroups.push({
+      categoryName: catName,
+      isUncategorized: false,
+      skills: skills.filter((s) => s.category?.trim() === catName),
+    });
+  }
+
+  // 3. Uncategorized skills (skills without a set category)
+  const uncategorizedSkills = skills.filter(
+    (s) => !s.category || s.category.trim() === "",
+  );
+  if (uncategorizedSkills.length > 0) {
+    skillGroups.push({
+      categoryName: "Uncategorized",
+      isUncategorized: true,
+      skills: uncategorizedSkills,
+    });
+  }
+
   return (
     <div className="flex flex-col gap-10">
-      {/* Skill Categories Section */}
+      {/* Skill Categories Management */}
       <div className="flex flex-col gap-5">
         <div className="flex flex-col gap-2">
           <span className="font-mono text-[11px] tracking-[0.2em] text-muted-foreground uppercase">
@@ -101,11 +142,11 @@ export default async function AdminSkillsPage() {
         />
       </div>
 
-      {/* Skills Section */}
+      {/* Add New Skill Section */}
       <div className="flex flex-col gap-5">
         <div className="flex flex-col gap-2">
           <span className="font-mono text-[11px] tracking-[0.2em] text-muted-foreground uppercase">
-            Skills List ({skills.length})
+            Add New Skill
           </span>
           <Separator />
         </div>
@@ -130,44 +171,20 @@ export default async function AdminSkillsPage() {
             <PrimaryButton type="submit">Add Skill</PrimaryButton>
           </div>
         </ActionForm>
+      </div>
 
-        <ReorderableList
-          entityType="skill"
-          items={skills.map((skill) => ({
-            id: skill.id,
-            order: skill.order,
-            content: (
-              <div className="flex flex-wrap items-center gap-3">
-                <ActionForm
-                  action={updateSkill}
-                  success="Skill saved."
-                  className="flex flex-1 flex-wrap items-center gap-3"
-                >
-                  <input type="hidden" name="id" value={skill.id} />
-                  <input type="hidden" name="order" value={skill.order} />
-                  <div className="min-w-36 flex-1">
-                    <TextInput name="name" defaultValue={skill.name} required />
-                  </div>
-                  <div className="min-w-44 flex-1">
-                    <SkillCategoryCombobox
-                      name="category"
-                      categories={categoryOptions}
-                      defaultValue={skill.category}
-                    />
-                  </div>
-                  <PrimaryButton type="submit">Save</PrimaryButton>
-                </ActionForm>
+      {/* Skills Grouped by Category Section */}
+      <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-2">
+          <span className="font-mono text-[11px] tracking-[0.2em] text-muted-foreground uppercase">
+            Skills List ({skills.length})
+          </span>
+          <Separator />
+        </div>
 
-                <DeleteDialog
-                  id={skill.id}
-                  action={deleteSkill}
-                  trigger="Delete"
-                  title={`Delete "${skill.name}"?`}
-                  description="This removes the skill from your public page. It cannot be undone."
-                />
-              </div>
-            ),
-          }))}
+        <CategorizedSkills
+          groups={skillGroups}
+          categoryOptions={categoryOptions}
         />
       </div>
     </div>

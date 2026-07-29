@@ -10,8 +10,10 @@ import {
   Loading02Icon,
 } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
+import { formatBytes, prepareImageForUpload } from "@/lib/image-compression";
 
-const MAX_BYTES = 8 * 1024 * 1024;
+const MAX_SOURCE_BYTES = 20 * 1024 * 1024;
+const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
 const ACCEPTED = "image/jpeg,image/png,image/webp,image/avif";
 
 type Props = {
@@ -32,6 +34,7 @@ export default function ImageUpload({
   const [url, setUrl] = useState(defaultValue ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function handleChange(event: ChangeEvent<HTMLInputElement>) {
@@ -39,20 +42,40 @@ export default function ImageUpload({
     if (!file) return;
 
     setError("");
+    setNotice("");
 
-    if (file.size > MAX_BYTES) {
-      setError("Image must be 8 MB or smaller.");
+    if (file.size > MAX_SOURCE_BYTES) {
+      setError("Image must be 20 MB or smaller before compression.");
       event.target.value = "";
       return;
     }
 
     setBusy(true);
     try {
-      const blob = await upload(`${folder}/${file.name}`, file, {
-        access: "public",
-        handleUploadUrl: "/api/blob/upload",
-      });
+      const prepared = await prepareImageForUpload(file);
+
+      if (prepared.uploadBytes > MAX_UPLOAD_BYTES) {
+        setError("Compressed image must be 4 MB or smaller.");
+        return;
+      }
+
+      const safeName = prepared.file.name.replace(/[^a-zA-Z0-9._-]/g, "-");
+      const blob = await upload(
+        `${folder}/${crypto.randomUUID()}-${safeName}`,
+        prepared.file,
+        {
+          access: "public",
+          handleUploadUrl: "/api/blob/upload",
+        },
+      );
       setUrl(blob.url);
+      if (prepared.compressed) {
+        setNotice(
+          `Compressed ${formatBytes(prepared.originalBytes)} to ${formatBytes(
+            prepared.uploadBytes,
+          )}.`,
+        );
+      }
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Upload failed.");
     } finally {
@@ -116,6 +139,7 @@ export default function ImageUpload({
                 onClick={(e) => {
                   e.stopPropagation();
                   setUrl("");
+                  setNotice("");
                   if (inputRef.current) inputRef.current.value = "";
                 }}
                 className="absolute top-2 right-2 z-10 shadow-md"
@@ -152,6 +176,7 @@ export default function ImageUpload({
       </div>
 
       {error && <p className="text-xs text-destructive">{error}</p>}
+      {notice && <p className="text-xs text-muted-foreground">{notice}</p>}
     </div>
   );
 }

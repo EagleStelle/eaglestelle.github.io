@@ -14,9 +14,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { formatBytes, prepareImageForUpload } from "@/lib/image-compression";
 import type { ProjectImage } from "@/lib/project-data";
 
-const MAX_BYTES = 8 * 1024 * 1024;
+const MAX_SOURCE_BYTES = 20 * 1024 * 1024;
+const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
 const ACCEPTED = "image/jpeg,image/png,image/webp,image/avif";
 
 type Props = {
@@ -37,6 +39,7 @@ export function ImageGalleryUpload({
   const [images, setImages] = useState(defaultValue);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function handleChange(event: ChangeEvent<HTMLInputElement>) {
@@ -44,22 +47,35 @@ export function ImageGalleryUpload({
     if (files.length === 0) return;
 
     setError("");
+    setNotice("");
 
-    const oversized = files.find((file) => file.size > MAX_BYTES);
+    const oversized = files.find((file) => file.size > MAX_SOURCE_BYTES);
     if (oversized) {
-      setError("Image must be 8 MB or smaller.");
+      setError("Images must be 20 MB or smaller before compression.");
       event.target.value = "";
       return;
     }
 
     setBusy(true);
     try {
+      const preparedFiles = await Promise.all(
+        files.map((file) => prepareImageForUpload(file)),
+      );
+
+      const tooLarge = preparedFiles.find(
+        (item) => item.uploadBytes > MAX_UPLOAD_BYTES,
+      );
+      if (tooLarge) {
+        setError("Compressed images must be 4 MB or smaller.");
+        return;
+      }
+
       const uploaded = await Promise.all(
-        files.map(async (file) => {
-          const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-");
+        preparedFiles.map(async (prepared) => {
+          const safeName = prepared.file.name.replace(/[^a-zA-Z0-9._-]/g, "-");
           const blob = await upload(
             `${folder}/${crypto.randomUUID()}-${safeName}`,
-            file,
+            prepared.file,
             {
               access: "public",
               handleUploadUrl: "/api/blob/upload",
@@ -70,6 +86,19 @@ export function ImageGalleryUpload({
       );
 
       setImages((items) => [...items, ...uploaded]);
+
+      const compressed = preparedFiles.filter((item) => item.compressed);
+      if (compressed.length > 0) {
+        setNotice(
+          `Compressed ${compressed.length} image${
+            compressed.length === 1 ? "" : "s"
+          } from ${formatBytes(
+            compressed.reduce((total, item) => total + item.originalBytes, 0),
+          )} to ${formatBytes(
+            compressed.reduce((total, item) => total + item.uploadBytes, 0),
+          )}.`,
+        );
+      }
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Upload failed.");
     } finally {
@@ -249,6 +278,7 @@ export function ImageGalleryUpload({
       )}
 
       {error && <p className="text-xs text-destructive">{error}</p>}
+      {notice && <p className="text-xs text-muted-foreground">{notice}</p>}
     </div>
   );
 }

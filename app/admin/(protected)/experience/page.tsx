@@ -173,7 +173,7 @@ export default async function AdminExperiencePage() {
                       action={deleteExperience}
                       trigger="Delete Experience"
                       title={`Delete "${item.role}"?`}
-                      description="This removes the experience from your public page. It cannot be undone."
+                      description="This also deletes the company logo from blob storage. It cannot be undone."
                     />
                   </div>
                 </ActionForm>

@@ -127,7 +127,7 @@ export default async function AdminEducationPage() {
                       action={deleteEducation}
                       trigger="Delete Education"
                       title={`Delete "${item.degree}"?`}
-                      description="This removes the education from your public page. It cannot be undone."
+                      description="This also deletes the institution logo from blob storage. It cannot be undone."
                     />
                   </div>
                 </ActionForm>

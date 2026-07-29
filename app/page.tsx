@@ -14,6 +14,8 @@ import { LavaLamp } from "@/components/lava-lamp";
 import { NavLinks, type NavItem } from "@/components/nav-links";
 import { PageFrame } from "@/components/page-frame";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { ContactForm } from "@/components/contact-form";
+import { FooterEmail } from "@/components/footer-email";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProjectShowcase, type ProjectView } from "@/components/project-showcase";
@@ -184,6 +186,7 @@ export default async function Home() {
     education.length > 0 && { href: "#education", name: "Education" },
     skills.length > 0 && { href: "#skills", name: "Skills" },
     certifications.length > 0 && { href: "#certifications", name: "Certifications" },
+    { href: "#contact", name: "Contact" },
   ].filter((link): link is NavItem => Boolean(link));
 
   const projectViews: ProjectView[] = projects.map((project) => ({
@@ -252,16 +255,6 @@ export default async function Home() {
 
           <div className="flex shrink-0 items-center gap-1">
             <ThemeToggle />
-            <Button
-              asChild
-              size="icon-text"
-              className="hidden sm:inline-flex"
-            >
-              <a href={`mailto:${profile.email}`}>
-                <UiIcon icon={Mail01Icon} />
-                Contact
-              </a>
-            </Button>
             <MobileNav name={profile.name} sections={sections} />
           </div>
         </PageFrame>
@@ -294,7 +287,7 @@ export default async function Home() {
                   </p>
                   <div className="flex flex-wrap items-center gap-2">
                     <Button asChild size="icon-text">
-                      <a href={`mailto:${profile.email}`}>
+                      <a href="#contact">
                         <UiIcon icon={Mail01Icon} />
                         Contact
                       </a>
@@ -392,39 +385,60 @@ export default async function Home() {
 
       </main>
 
-      <footer className="glass-nav relative z-10">
-        <PageFrame className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
-          <div className="flex flex-col gap-4">
-            <SectionTitle>Contact</SectionTitle>
-            <a
-              href={`mailto:${profile.email}`}
-              className="inline-flex items-center gap-2 text-lg font-medium text-primary hover:text-primary/80 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-            >
-              {profile.email}
-              <UiIcon icon={ArrowUpRight01Icon} />
-            </a>
-          </div>
-          {socials.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {socials.map((social) => (
-                <Button
-                  key={social.name}
-                  asChild
-                  variant="secondary"
-                  size="icon-only"
-                >
-                  <a
-                    href={social.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={social.name}
-                  >
-                    <UiIcon icon={social.icon} className="size-5" />
-                  </a>
-                </Button>
-              ))}
+      <footer id="contact" className="glass-nav relative z-10">
+        <PageFrame className="flex flex-col gap-6 py-4 sm:py-6 lg:py-8 xl:py-10">
+          <div className="grid gap-8 lg:grid-cols-12 lg:gap-12 lg:items-start">
+            <div className="flex flex-col gap-6 lg:col-span-5">
+              <div className="flex flex-col gap-3">
+                <SectionTitle>Contact</SectionTitle>
+                <p className="text-base leading-7 text-muted-foreground">
+                  Send a note through the form or email directly.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Email
+                </span>
+                <FooterEmail email={profile.email} />
+              </div>
+
+              {socials.length > 0 && (
+                <div className="flex flex-col gap-2.5">
+                  <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    Connect
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {socials.map((social) => (
+                      <Button
+                        key={social.name}
+                        asChild
+                        variant="secondary"
+                        size="icon-only"
+                      >
+                        <a
+                          href={social.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={social.name}
+                        >
+                          <UiIcon icon={social.icon} className="size-5" />
+                        </a>
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          )}
+
+            <div className="lg:col-span-7">
+              <ContactForm />
+            </div>
+          </div>
+
+          <div className="flex flex-col items-center justify-between gap-4 text-xs text-muted-foreground sm:flex-row">
+            <p>© {new Date().getFullYear()} {profile.name}. All rights reserved.</p>
+          </div>
         </PageFrame>
       </footer>
     </div>
