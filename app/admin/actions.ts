@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { destroySession, requireAdmin } from "@/lib/auth";
 import { normalizeThemeColor } from "@/lib/appearance";
+import { normalizeMonthValue } from "@/lib/period";
 import {
   parseProjectImageEntries,
   parseProjectImages,
@@ -21,6 +22,22 @@ function text(formData: FormData, key: string): string {
 function optionalText(formData: FormData, key: string): string | null {
   const value = text(formData, key);
   return value === "" ? null : value;
+}
+
+function optionalMonth(
+  formData: FormData,
+  key: string,
+  label: string,
+): string | null {
+  const value = text(formData, key);
+  if (value === "") return null;
+
+  const normalized = normalizeMonthValue(value);
+  if (!normalized) {
+    throw new Error(`${label} must include a valid month and year.`);
+  }
+
+  return normalized;
 }
 
 function requiredText(formData: FormData, key: string, label: string): string {
@@ -305,8 +322,8 @@ export async function createProject(formData: FormData): Promise<void> {
       techStack: parseProjectList(text(formData, "techStack")).join("\n"),
       projectUrl: optionalText(formData, "projectUrl"),
       sourceUrl: optionalText(formData, "sourceUrl"),
-      startDate: optionalText(formData, "startDate"),
-      endDate: optionalText(formData, "endDate"),
+      startDate: optionalMonth(formData, "startDate", "Start month"),
+      endDate: optionalMonth(formData, "endDate", "End month"),
       order,
     },
   });
@@ -341,8 +358,8 @@ export async function updateProject(formData: FormData): Promise<void> {
       techStack: parseProjectList(text(formData, "techStack")).join("\n"),
       projectUrl: optionalText(formData, "projectUrl"),
       sourceUrl: optionalText(formData, "sourceUrl"),
-      startDate: optionalText(formData, "startDate"),
-      endDate: optionalText(formData, "endDate"),
+      startDate: optionalMonth(formData, "startDate", "Start month"),
+      endDate: optionalMonth(formData, "endDate", "End month"),
       order: integer(formData, "order"),
     },
   });
@@ -379,8 +396,8 @@ export async function createExperience(formData: FormData): Promise<void> {
       logoUrl: optionalText(formData, "logoUrl"),
       employmentType: optionalText(formData, "employmentType"),
       locationType: optionalText(formData, "locationType"),
-      startDate: optionalText(formData, "startDate"),
-      endDate: optionalText(formData, "endDate"),
+      startDate: optionalMonth(formData, "startDate", "Start month"),
+      endDate: optionalMonth(formData, "endDate", "End month"),
       description: text(formData, "description"),
       order,
     },
@@ -408,8 +425,8 @@ export async function updateExperience(formData: FormData): Promise<void> {
       logoUrl,
       employmentType: optionalText(formData, "employmentType"),
       locationType: optionalText(formData, "locationType"),
-      startDate: optionalText(formData, "startDate"),
-      endDate: optionalText(formData, "endDate"),
+      startDate: optionalMonth(formData, "startDate", "Start month"),
+      endDate: optionalMonth(formData, "endDate", "End month"),
       description: text(formData, "description"),
       order: integer(formData, "order"),
     },
@@ -440,8 +457,8 @@ export async function createEducation(formData: FormData): Promise<void> {
       degree: text(formData, "degree"),
       institution: text(formData, "institution"),
       logoUrl: optionalText(formData, "logoUrl"),
-      startDate: optionalText(formData, "startDate"),
-      endDate: optionalText(formData, "endDate"),
+      startDate: optionalMonth(formData, "startDate", "Start month"),
+      endDate: optionalMonth(formData, "endDate", "End month"),
       description: text(formData, "description"),
       order,
     },
@@ -467,8 +484,8 @@ export async function updateEducation(formData: FormData): Promise<void> {
       degree: text(formData, "degree"),
       institution: text(formData, "institution"),
       logoUrl,
-      startDate: optionalText(formData, "startDate"),
-      endDate: optionalText(formData, "endDate"),
+      startDate: optionalMonth(formData, "startDate", "Start month"),
+      endDate: optionalMonth(formData, "endDate", "End month"),
       description: text(formData, "description"),
       order: integer(formData, "order"),
     },

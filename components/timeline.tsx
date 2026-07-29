@@ -47,7 +47,7 @@ function MetaLine({
               {" \u00B7 "}
             </span>
           )}
-          <span className={primary && index === 0 ? "text-primary" : undefined}>
+          <span className={primary ? "text-primary" : undefined}>
             {item}
           </span>
         </Fragment>

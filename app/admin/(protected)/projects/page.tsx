@@ -1,5 +1,5 @@
 import { ImageGalleryUpload } from "@/components/image-gallery-upload";
-import { DatePickerInput } from "@/components/date-picker-input";
+import { MonthInput } from "@/components/month-input";
 import { ActionForm } from "@/components/admin/action-form";
 import { DeleteDialog } from "@/components/admin/delete-dialog";
 import { ReorderableList } from "@/components/admin/reorderable-list";
@@ -45,11 +45,11 @@ export default async function AdminProjectsPage() {
               <TextInput name="title" required />
             </Field>
           </div>
-          <Field label="Start Date">
-            <DatePickerInput name="startDate" />
+          <Field label="Start Month">
+            <MonthInput name="startDate" />
           </Field>
-          <Field label="End Date">
-            <DatePickerInput name="endDate" />
+          <Field label="End Month">
+            <MonthInput name="endDate" />
           </Field>
           <div className="sm:col-span-2">
             <Field label="Live URL">
@@ -120,14 +120,14 @@ export default async function AdminProjectsPage() {
                         />
                       </Field>
                     </div>
-                    <Field label="Start Date">
-                      <DatePickerInput
+                    <Field label="Start Month">
+                      <MonthInput
                         name="startDate"
                         defaultValue={project.startDate ?? ""}
                       />
                     </Field>
-                    <Field label="End Date">
-                      <DatePickerInput
+                    <Field label="End Month">
+                      <MonthInput
                         name="endDate"
                         defaultValue={project.endDate ?? ""}
                       />
