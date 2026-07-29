@@ -23,6 +23,14 @@ function optionalText(formData: FormData, key: string): string | null {
   return value === "" ? null : value;
 }
 
+function requiredText(formData: FormData, key: string, label: string): string {
+  const value = text(formData, key);
+  if (value === "") {
+    throw new Error(`${label} is required.`);
+  }
+  return value;
+}
+
 function optionalDate(formData: FormData, key: string): Date | null {
   const value = text(formData, key);
   if (value === "") return null;
@@ -76,6 +84,16 @@ async function removeChangedBlobs(
   );
 }
 
+async function saveSkillCategoryOption(name: string | null): Promise<void> {
+  if (!name) return;
+
+  await prisma.skillCategory.upsert({
+    where: { name },
+    create: { name },
+    update: {},
+  });
+}
+
 export async function logout(): Promise<void> {
   await destroySession();
   redirect("/admin/login");
@@ -120,10 +138,13 @@ export async function saveProfile(formData: FormData): Promise<void> {
 export async function createSkill(formData: FormData): Promise<void> {
   await requireAdmin();
 
+  const category = optionalText(formData, "category");
+  await saveSkillCategoryOption(category);
+
   await prisma.skill.create({
     data: {
       name: text(formData, "name"),
-      category: optionalText(formData, "category"),
+      category,
       order: integer(formData, "order"),
     },
   });
@@ -134,11 +155,14 @@ export async function createSkill(formData: FormData): Promise<void> {
 export async function updateSkill(formData: FormData): Promise<void> {
   await requireAdmin();
 
+  const category = optionalText(formData, "category");
+  await saveSkillCategoryOption(category);
+
   await prisma.skill.update({
     where: { id: requireId(formData) },
     data: {
       name: text(formData, "name"),
-      category: optionalText(formData, "category"),
+      category,
       order: integer(formData, "order"),
     },
   });
@@ -150,6 +174,78 @@ export async function deleteSkill(formData: FormData): Promise<void> {
   await requireAdmin();
 
   await prisma.skill.delete({ where: { id: requireId(formData) } });
+
+  refresh("/admin/skills");
+}
+
+export async function createSkillCategory(formData: FormData): Promise<void> {
+  await requireAdmin();
+
+  const name = requiredText(formData, "name", "Category name");
+
+  const existing = await prisma.skillCategory.findUnique({ where: { name } });
+  if (existing) {
+    throw new Error("A category with that name already exists.");
+  }
+
+  await prisma.skillCategory.create({
+    data: {
+      name,
+      order: integer(formData, "order"),
+    },
+  });
+
+  refresh("/admin/skills");
+}
+
+export async function updateSkillCategory(formData: FormData): Promise<void> {
+  await requireAdmin();
+
+  const id = requireId(formData);
+  const name = requiredText(formData, "name", "Category name");
+  const order = integer(formData, "order");
+
+  const current = await prisma.skillCategory.findUnique({ where: { id } });
+  if (!current) {
+    throw new Error("Category not found.");
+  }
+
+  const existing = await prisma.skillCategory.findUnique({ where: { name } });
+  if (existing && existing.id !== id) {
+    throw new Error("A category with that name already exists.");
+  }
+
+  await prisma.$transaction([
+    prisma.skillCategory.update({
+      where: { id },
+      data: { name, order },
+    }),
+    prisma.skill.updateMany({
+      where: { category: current.name },
+      data: { category: name },
+    }),
+  ]);
+
+  refresh("/admin/skills");
+}
+
+export async function deleteSkillCategory(formData: FormData): Promise<void> {
+  await requireAdmin();
+
+  const category = await prisma.skillCategory.findUnique({
+    where: { id: requireId(formData) },
+  });
+  if (!category) {
+    throw new Error("Category not found.");
+  }
+
+  await prisma.$transaction([
+    prisma.skill.updateMany({
+      where: { category: category.name },
+      data: { category: null },
+    }),
+    prisma.skillCategory.delete({ where: { id: category.id } }),
+  ]);
 
   refresh("/admin/skills");
 }

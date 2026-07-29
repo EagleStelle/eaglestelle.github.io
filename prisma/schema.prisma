@@ -30,6 +30,12 @@ model Skill {
   order    Int     @default(0)
 }
 
+model SkillCategory {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+  order Int    @default(0)
+}
+
 model Project {
   id          Int      @id @default(autoincrement())
   title       String

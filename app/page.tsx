@@ -64,20 +64,77 @@ function UiIcon({
   );
 }
 
-function groupByCategory<T extends { category: string | null }>(items: T[]) {
-  const groups = new Map<string, T[]>();
+type CategoryOrder = {
+  name: string;
+  order: number;
+};
+
+function groupSkillsByCategory<
+  T extends { category: string | null; name: string; order: number },
+>(items: T[], categories: CategoryOrder[]) {
+  const categoryOrder = new Map(
+    categories.map((category) => [category.name, category.order]),
+  );
+  const groups = new Map<
+    string,
+    {
+      order: number;
+      firstSkillOrder: number;
+      items: T[];
+    }
+  >();
+
   for (const item of items) {
     const key = item.category ?? "Other";
-    groups.set(key, [...(groups.get(key) ?? []), item]);
+    const group = groups.get(key);
+
+    if (group) {
+      group.firstSkillOrder = Math.min(group.firstSkillOrder, item.order);
+      group.items.push(item);
+    } else {
+      groups.set(key, {
+        order: categoryOrder.get(key) ?? Number.MAX_SAFE_INTEGER,
+        firstSkillOrder: item.order,
+        items: [item],
+      });
+    }
   }
-  return [...groups.entries()];
+
+  return [...groups.entries()]
+    .sort((left, right) => {
+      const leftGroup = left[1];
+      const rightGroup = right[1];
+
+      return (
+        leftGroup.order - rightGroup.order ||
+        leftGroup.firstSkillOrder - rightGroup.firstSkillOrder ||
+        left[0].localeCompare(right[0])
+      );
+    })
+    .map(([category, group]) => [
+      category,
+      [...group.items].sort(
+        (left, right) =>
+          left.order - right.order || left.name.localeCompare(right.name),
+      ),
+    ] as const);
 }
 
 export default async function Home() {
-  const [profile, skills, projects, experience, education, certifications] =
-    await Promise.all([
+  const [
+    profile,
+    skills,
+    skillCategories,
+    projects,
+    experience,
+    education,
+    certifications,
+  ] = await Promise.all([
       prisma.profile.findUnique({ where: { id: 1 } }),
       prisma.skill.findMany({ orderBy: [{ order: "asc" }, { name: "asc" }] }),
+      prisma.skillCategory.findMany({
+        orderBy: [{ order: "asc" }, { name: "asc" }],
+      }),
       prisma.project.findMany({
         orderBy: [{ order: "asc" }, { createdAt: "desc" }],
       }),
@@ -180,6 +237,7 @@ export default async function Home() {
     certificationUrl: item.certificationUrl,
     issuedAt: item.issuedAt,
   }));
+  const skillGroups = groupSkillsByCategory(skills, skillCategories);
 
   const heroImage =
     profile.avatarUrl ??
@@ -315,7 +373,7 @@ export default async function Home() {
             <SectionTitle>Skills</SectionTitle>
 
             <div className="grid gap-x-8 gap-y-10 md:grid-cols-2 xl:grid-cols-4">
-              {groupByCategory(skills).map(([category, items]) => (
+              {skillGroups.map(([category, items]) => (
                 <section key={category} className="flex flex-col gap-4">
                   <h3 className="text-lg font-semibold">{category}</h3>
                   <ul className="flex flex-wrap gap-2">
