@@ -26,7 +26,7 @@ export default function RootLayout({
       className="h-full antialiased"
       suppressHydrationWarning
     >
-      <body className="flex min-h-full w-full max-w-full flex-col overflow-x-hidden">
+      <body className="flex min-h-full w-full max-w-full flex-col overflow-x-clip">
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

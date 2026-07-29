@@ -2,6 +2,9 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ArrowUpRight01Icon, Logout01Icon } from "@hugeicons/core-free-icons";
+import { MobileNav } from "@/components/mobile-nav";
+import { NavLinks } from "@/components/nav-links";
+import { PageFrame } from "@/components/page-frame";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
@@ -9,11 +12,12 @@ import { requireAdmin } from "@/lib/auth";
 import { logout } from "@/app/admin/actions";
 
 const links = [
-  { href: "/admin", label: "Overview" },
-  { href: "/admin/profile", label: "Profile" },
-  { href: "/admin/skills", label: "Skills" },
-  { href: "/admin/projects", label: "Projects" },
-  { href: "/admin/certifications", label: "Certifications" },
+  { href: "/admin/profile", name: "Profile" },
+  { href: "/admin/skills", name: "Skills" },
+  { href: "/admin/projects", name: "Projects" },
+  { href: "/admin/experience", name: "Experience" },
+  { href: "/admin/education", name: "Education" },
+  { href: "/admin/certifications", name: "Credentials" },
 ];
 
 export default async function ProtectedAdminLayout({
@@ -25,27 +29,26 @@ export default async function ProtectedAdminLayout({
 
   return (
     <div className="flex w-full max-w-full flex-1 flex-col">
-      <header className="sticky top-0 z-50 flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-border/60 bg-background/80 px-5 py-4 backdrop-blur-xl md:px-10 lg:px-16">
-        <span className="font-mono text-[11px] tracking-[0.28em] text-muted-foreground uppercase">
-          Admin
-        </span>
+      <header className="sticky top-0 z-50 bg-background/5 backdrop-blur-[30px] backdrop-saturate-200">
+        <PageFrame className="flex min-h-16 items-center justify-between gap-4">
+          <Link
+            href="/admin/profile"
+            className="min-w-0 truncate text-sm font-semibold"
+          >
+            Admin
+          </Link>
 
-        <nav className="flex flex-wrap items-center gap-x-6 gap-y-2">
-          {links.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="font-mono text-[11px] tracking-[0.2em] text-muted-foreground uppercase hover:text-foreground"
-            >
-              {link.label}
-            </Link>
-          ))}
-        </nav>
+          <NavLinks items={links} className="hidden md:flex" />
 
-        <div className="ml-auto flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1">
           <ThemeToggle />
 
-          <Button asChild variant="ghost" size="sm" className="rounded-full">
+          <Button
+            asChild
+            variant="glass"
+            size="icon-text"
+            className="hidden sm:inline-flex"
+          >
             <Link href="/">
               View site
               <HugeiconsIcon
@@ -59,9 +62,9 @@ export default async function ProtectedAdminLayout({
           <form action={logout}>
             <Button
               type="submit"
-              variant="ghost"
-              size="sm"
-              className="rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive"
+              variant="destructive"
+              size="icon-text"
+              className="hidden sm:inline-flex"
             >
               <HugeiconsIcon
                 aria-hidden="true"
@@ -71,7 +74,10 @@ export default async function ProtectedAdminLayout({
               Sign out
             </Button>
           </form>
-        </div>
+
+          <MobileNav name="Admin" sections={links} />
+          </div>
+        </PageFrame>
       </header>
 
       <main className="w-full flex-1 px-5 py-12 md:px-10 lg:px-16 2xl:px-24">

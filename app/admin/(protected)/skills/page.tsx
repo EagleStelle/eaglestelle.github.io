@@ -16,7 +16,7 @@ export default async function AdminSkillsPage() {
       <ActionForm
         action={createSkill}
         success="Skill added."
-        className="flex flex-col gap-5 rounded-xl border border-border bg-card p-5"
+        className="flex flex-col gap-5"
       >
         <h2 className="font-mono text-[11px] tracking-[0.2em] text-muted-foreground uppercase">
           Add a skill
@@ -26,7 +26,7 @@ export default async function AdminSkillsPage() {
             <TextInput name="name" required />
           </Field>
           <Field label="Category">
-            <TextInput name="category" placeholder="Frontend" />
+            <TextInput name="category" />
           </Field>
           <Field label="Order">
             <TextInput type="number" name="order" defaultValue={0} />
@@ -45,7 +45,7 @@ export default async function AdminSkillsPage() {
         {skills.map((skill) => (
           <div
             key={skill.id}
-            className="flex flex-wrap items-end gap-4 rounded-xl border border-border p-4"
+            className="flex flex-wrap items-end gap-4 border-t border-border pt-5"
           >
             <ActionForm
               action={updateSkill}

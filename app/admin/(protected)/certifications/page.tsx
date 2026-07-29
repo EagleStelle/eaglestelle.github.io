@@ -1,4 +1,5 @@
 import ImageUpload from "@/components/ImageUpload";
+import { DatePickerInput } from "@/components/date-picker-input";
 import { ActionForm } from "@/components/admin/action-form";
 import { DeleteDialog } from "@/components/admin/delete-dialog";
 import { Field, PrimaryButton, TextInput } from "@/components/form";
@@ -25,7 +26,7 @@ export default async function AdminCertificationsPage() {
       <ActionForm
         action={createCertification}
         success="Certification added."
-        className="flex flex-col gap-5 rounded-xl border border-border bg-card p-5"
+        className="flex flex-col gap-5"
       >
         <h2 className="font-mono text-[11px] tracking-[0.2em] text-muted-foreground uppercase">
           Add a certification
@@ -49,7 +50,7 @@ export default async function AdminCertificationsPage() {
             <TextInput type="url" name="credentialUrl" />
           </Field>
           <Field label="Issued at">
-            <TextInput type="date" name="issuedAt" />
+            <DatePickerInput name="issuedAt" />
           </Field>
           <Field label="Order">
             <TextInput type="number" name="order" defaultValue={0} />
@@ -69,7 +70,7 @@ export default async function AdminCertificationsPage() {
         {certifications.map((certification) => (
           <div
             key={certification.id}
-            className="rounded-xl border border-border p-5"
+            className="flex flex-col gap-5 border-t border-border pt-6"
           >
             <ActionForm
               action={updateCertification}
@@ -109,8 +110,7 @@ export default async function AdminCertificationsPage() {
                   />
                 </Field>
                 <Field label="Issued at">
-                  <TextInput
-                    type="date"
+                  <DatePickerInput
                     name="issuedAt"
                     defaultValue={toDateInput(certification.issuedAt)}
                   />
@@ -129,7 +129,7 @@ export default async function AdminCertificationsPage() {
               </div>
             </ActionForm>
 
-            <div className="mt-5 border-t border-border pt-5">
+            <div>
               <DeleteDialog
                 id={certification.id}
                 action={deleteCertification}

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Menu01Icon } from "@hugeicons/core-free-icons";
+import { NavLinks, type NavItem } from "@/components/nav-links";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -14,7 +15,7 @@ import {
 
 type Props = {
   name: string;
-  sections: { href: string; name: string }[];
+  sections: NavItem[];
 };
 
 export function MobileNav({ name, sections }: Props) {
@@ -42,18 +43,12 @@ export function MobileNav({ name, sections }: Props) {
           </SheetTitle>
         </SheetHeader>
 
-        <nav className="flex flex-col px-4">
-          {sections.map((section) => (
-            <a
-              key={section.href}
-              href={section.href}
-              onClick={() => setOpen(false)}
-              className="border-b border-border py-5 text-2xl font-semibold hover:text-primary focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-            >
-              {section.name}
-            </a>
-          ))}
-        </nav>
+        <NavLinks
+          items={sections}
+          className="flex flex-col items-stretch px-4"
+          itemClassName="h-auto justify-start rounded-none border-b border-border py-5 text-2xl font-semibold"
+          onNavigate={() => setOpen(false)}
+        />
       </SheetContent>
     </Sheet>
   );

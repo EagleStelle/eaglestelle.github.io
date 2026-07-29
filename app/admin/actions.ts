@@ -6,6 +6,11 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { destroySession, requireAdmin } from "@/lib/auth";
 import { normalizeThemeColor } from "@/lib/appearance";
+import {
+  parseProjectImages,
+  parseProjectList,
+  serializeProjectList,
+} from "@/lib/project-data";
 
 function text(formData: FormData, key: string): string {
   return String(formData.get(key) ?? "").trim();
@@ -50,6 +55,25 @@ function refresh(path: string): void {
   revalidatePath(path);
 }
 
+function projectImages(formData: FormData): string[] {
+  const images = parseProjectList(text(formData, "imageUrls"));
+  if (images.length === 0) {
+    throw new Error("Add at least one project image.");
+  }
+  return images;
+}
+
+async function removeChangedBlobs(
+  previous: string[],
+  next: string[],
+): Promise<void> {
+  await Promise.all(
+    previous
+      .filter((url) => !next.includes(url))
+      .map((url) => removeBlob(url)),
+  );
+}
+
 export async function logout(): Promise<void> {
   await destroySession();
   redirect("/admin/login");
@@ -77,7 +101,9 @@ export async function saveProfile(formData: FormData): Promise<void> {
     githubUrl: optionalText(formData, "githubUrl"),
     linkedinUrl: optionalText(formData, "linkedinUrl"),
     websiteUrl: optionalText(formData, "websiteUrl"),
-    themeColor: normalizeThemeColor(formData.get("themeColor")),
+    themeColor: normalizeThemeColor(
+      formData.get("themeColor") ?? existing?.themeColor ?? null,
+    ),
   };
 
   await prisma.profile.upsert({
@@ -129,11 +155,15 @@ export async function deleteSkill(formData: FormData): Promise<void> {
 export async function createProject(formData: FormData): Promise<void> {
   await requireAdmin();
 
+  const images = projectImages(formData);
+
   await prisma.project.create({
     data: {
       title: text(formData, "title"),
       description: text(formData, "description"),
-      imageUrl: text(formData, "imageUrl"),
+      imageUrl: images[0],
+      imageUrls: serializeProjectList(images),
+      techStack: parseProjectList(text(formData, "techStack")).join("\n"),
       projectUrl: optionalText(formData, "projectUrl"),
       sourceUrl: optionalText(formData, "sourceUrl"),
       order: integer(formData, "order"),
@@ -147,11 +177,17 @@ export async function updateProject(formData: FormData): Promise<void> {
   await requireAdmin();
 
   const id = requireId(formData);
-  const imageUrl = text(formData, "imageUrl");
+  const images = projectImages(formData);
   const existing = await prisma.project.findUnique({ where: { id } });
 
-  if (existing && existing.imageUrl !== imageUrl) {
-    await removeBlob(existing.imageUrl);
+  if (existing) {
+    await removeChangedBlobs(
+      parseProjectImages({
+        imageUrl: existing.imageUrl,
+        imageUrls: existing.imageUrls,
+      }),
+      images,
+    );
   }
 
   await prisma.project.update({
@@ -159,7 +195,9 @@ export async function updateProject(formData: FormData): Promise<void> {
     data: {
       title: text(formData, "title"),
       description: text(formData, "description"),
-      imageUrl,
+      imageUrl: images[0],
+      imageUrls: serializeProjectList(images),
+      techStack: parseProjectList(text(formData, "techStack")).join("\n"),
       projectUrl: optionalText(formData, "projectUrl"),
       sourceUrl: optionalText(formData, "sourceUrl"),
       order: integer(formData, "order"),
@@ -175,9 +213,130 @@ export async function deleteProject(formData: FormData): Promise<void> {
   const deleted = await prisma.project.delete({
     where: { id: requireId(formData) },
   });
-  await removeBlob(deleted.imageUrl);
+  await Promise.all(
+    parseProjectImages({
+      imageUrl: deleted.imageUrl,
+      imageUrls: deleted.imageUrls,
+    }).map((url) => removeBlob(url)),
+  );
 
   refresh("/admin/projects");
+}
+
+export async function createExperience(formData: FormData): Promise<void> {
+  await requireAdmin();
+
+  await prisma.experience.create({
+    data: {
+      role: text(formData, "role"),
+      company: text(formData, "company"),
+      logoUrl: optionalText(formData, "logoUrl"),
+      location: optionalText(formData, "location"),
+      startDate: optionalText(formData, "startDate"),
+      endDate: optionalText(formData, "endDate"),
+      description: text(formData, "description"),
+      order: integer(formData, "order"),
+    },
+  });
+
+  refresh("/admin/experience");
+}
+
+export async function updateExperience(formData: FormData): Promise<void> {
+  await requireAdmin();
+
+  const id = requireId(formData);
+  const logoUrl = optionalText(formData, "logoUrl");
+  const existing = await prisma.experience.findUnique({ where: { id } });
+
+  if (existing && existing.logoUrl !== logoUrl) {
+    await removeBlob(existing.logoUrl);
+  }
+
+  await prisma.experience.update({
+    where: { id },
+    data: {
+      role: text(formData, "role"),
+      company: text(formData, "company"),
+      logoUrl,
+      location: optionalText(formData, "location"),
+      startDate: optionalText(formData, "startDate"),
+      endDate: optionalText(formData, "endDate"),
+      description: text(formData, "description"),
+      order: integer(formData, "order"),
+    },
+  });
+
+  refresh("/admin/experience");
+}
+
+export async function deleteExperience(formData: FormData): Promise<void> {
+  await requireAdmin();
+
+  const deleted = await prisma.experience.delete({
+    where: { id: requireId(formData) },
+  });
+  await removeBlob(deleted.logoUrl);
+
+  refresh("/admin/experience");
+}
+
+export async function createEducation(formData: FormData): Promise<void> {
+  await requireAdmin();
+
+  await prisma.education.create({
+    data: {
+      degree: text(formData, "degree"),
+      institution: text(formData, "institution"),
+      logoUrl: optionalText(formData, "logoUrl"),
+      location: optionalText(formData, "location"),
+      startDate: optionalText(formData, "startDate"),
+      endDate: optionalText(formData, "endDate"),
+      description: text(formData, "description"),
+      order: integer(formData, "order"),
+    },
+  });
+
+  refresh("/admin/education");
+}
+
+export async function updateEducation(formData: FormData): Promise<void> {
+  await requireAdmin();
+
+  const id = requireId(formData);
+  const logoUrl = optionalText(formData, "logoUrl");
+  const existing = await prisma.education.findUnique({ where: { id } });
+
+  if (existing && existing.logoUrl !== logoUrl) {
+    await removeBlob(existing.logoUrl);
+  }
+
+  await prisma.education.update({
+    where: { id },
+    data: {
+      degree: text(formData, "degree"),
+      institution: text(formData, "institution"),
+      logoUrl,
+      location: optionalText(formData, "location"),
+      startDate: optionalText(formData, "startDate"),
+      endDate: optionalText(formData, "endDate"),
+      description: text(formData, "description"),
+      order: integer(formData, "order"),
+    },
+  });
+
+  refresh("/admin/education");
+}
+
+export async function deleteEducation(formData: FormData): Promise<void> {
+  await requireAdmin();
+
+  const deleted = await prisma.education.delete({
+    where: { id: requireId(formData) },
+  });
+  await removeBlob(deleted.logoUrl);
+
+  refresh("/admin/education");
 }
 
 export async function createCertification(formData: FormData): Promise<void> {

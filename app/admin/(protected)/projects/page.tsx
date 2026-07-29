@@ -1,8 +1,9 @@
-import ImageUpload from "@/components/ImageUpload";
+import { ImageGalleryUpload } from "@/components/image-gallery-upload";
 import { ActionForm } from "@/components/admin/action-form";
 import { DeleteDialog } from "@/components/admin/delete-dialog";
 import { Field, PrimaryButton, TextArea, TextInput } from "@/components/form";
 import { prisma } from "@/lib/prisma";
+import { formatProjectList, parseProjectImages } from "@/lib/project-data";
 import {
   createProject,
   deleteProject,
@@ -21,16 +22,16 @@ export default async function AdminProjectsPage() {
       <ActionForm
         action={createProject}
         success="Project added."
-        className="flex flex-col gap-5 rounded-xl border border-border bg-card p-5"
+        className="flex flex-col gap-5"
       >
         <h2 className="font-mono text-[11px] tracking-[0.2em] text-muted-foreground uppercase">
           Add a project
         </h2>
 
-        <ImageUpload
-          name="imageUrl"
+        <ImageGalleryUpload
+          name="imageUrls"
           folder="projects"
-          label="Cover image"
+          label="Images"
           required
         />
 
@@ -42,6 +43,10 @@ export default async function AdminProjectsPage() {
             <TextInput type="number" name="order" defaultValue={0} />
           </Field>
         </div>
+
+        <Field label="Tech stack">
+          <TextArea name="techStack" />
+        </Field>
 
         <Field label="Description">
           <TextArea name="description" required />
@@ -67,7 +72,10 @@ export default async function AdminProjectsPage() {
         </h2>
 
         {projects.map((project) => (
-          <div key={project.id} className="rounded-xl border border-border p-5">
+          <div
+            key={project.id}
+            className="flex flex-col gap-5 border-t border-border pt-6"
+          >
             <ActionForm
               action={updateProject}
               success="Project saved."
@@ -75,11 +83,14 @@ export default async function AdminProjectsPage() {
             >
               <input type="hidden" name="id" value={project.id} />
 
-              <ImageUpload
-                name="imageUrl"
+              <ImageGalleryUpload
+                name="imageUrls"
                 folder="projects"
-                label="Cover image"
-                defaultValue={project.imageUrl}
+                label="Images"
+                defaultValue={parseProjectImages({
+                  imageUrl: project.imageUrl,
+                  imageUrls: project.imageUrls,
+                })}
                 required
               />
 
@@ -99,6 +110,13 @@ export default async function AdminProjectsPage() {
                   />
                 </Field>
               </div>
+
+              <Field label="Tech stack">
+                <TextArea
+                  name="techStack"
+                  defaultValue={formatProjectList(project.techStack)}
+                />
+              </Field>
 
               <Field label="Description">
                 <TextArea
@@ -130,13 +148,13 @@ export default async function AdminProjectsPage() {
               </div>
             </ActionForm>
 
-            <div className="mt-5 border-t border-border pt-5">
+            <div>
               <DeleteDialog
                 id={project.id}
                 action={deleteProject}
                 trigger="Delete project"
                 title={`Delete "${project.title}"?`}
-                description="This also deletes the cover image from blob storage. It cannot be undone."
+                description="This also deletes the project images from blob storage. It cannot be undone."
               />
             </div>
           </div>

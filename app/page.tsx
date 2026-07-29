@@ -11,27 +11,20 @@ import {
   Mail01Icon,
 } from "@hugeicons/core-free-icons";
 import { MobileNav } from "@/components/mobile-nav";
+import { LavaLamp } from "@/components/lava-lamp";
+import { NavLinks, type NavItem } from "@/components/nav-links";
+import { PageFrame } from "@/components/page-frame";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { normalizeThemeColor } from "@/lib/appearance";
+import { ProjectShowcase, type ProjectView } from "@/components/project-showcase";
+import { parseProjectImages, parseProjectList } from "@/lib/project-data";
 import { cn } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-const frameInset = "px-6 py-4 sm:px-8 lg:px-12 xl:px-16";
 const sectionInset = "px-6 py-4 sm:px-8 sm:py-6 lg:px-12 lg:py-8 xl:px-16 xl:py-10";
-
-function PageFrame({
-  children,
-  className,
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
-  return <div className={cn("w-full", frameInset, className)}>{children}</div>;
-}
 
 function PageSection({
   className,
@@ -102,48 +95,28 @@ function groupByCategory<T extends { category: string | null }>(items: T[]) {
   return [...groups.entries()];
 }
 
-function ProjectActions({
-  projectUrl,
-  sourceUrl,
-}: {
-  projectUrl: string | null;
-  sourceUrl: string | null;
-}) {
-  if (!projectUrl && !sourceUrl) return null;
-
-  return (
-    <div className="flex flex-wrap gap-2">
-      {projectUrl && (
-        <Button asChild variant="glass-accent" size="icon-text">
-          <a href={projectUrl} target="_blank" rel="noopener noreferrer">
-            <UiIcon icon={ArrowUpRight01Icon} />
-            Live
-          </a>
-        </Button>
-      )}
-      {sourceUrl && (
-        <Button asChild variant="glass" size="icon-text">
-          <a href={sourceUrl} target="_blank" rel="noopener noreferrer">
-            <UiIcon icon={ArrowUpRight01Icon} />
-            Source
-          </a>
-        </Button>
-      )}
-    </div>
-  );
+function formatPeriod(start: string | null, end: string | null) {
+  return [start, end].filter(Boolean).join(" - ");
 }
 
 export default async function Home() {
-  const [profile, skills, projects, certifications] = await Promise.all([
-    prisma.profile.findUnique({ where: { id: 1 } }),
-    prisma.skill.findMany({ orderBy: [{ order: "asc" }, { name: "asc" }] }),
-    prisma.project.findMany({
-      orderBy: [{ order: "asc" }, { createdAt: "desc" }],
-    }),
-    prisma.certification.findMany({
-      orderBy: [{ order: "asc" }, { issuedAt: "desc" }],
-    }),
-  ]);
+  const [profile, skills, projects, experience, education, certifications] =
+    await Promise.all([
+      prisma.profile.findUnique({ where: { id: 1 } }),
+      prisma.skill.findMany({ orderBy: [{ order: "asc" }, { name: "asc" }] }),
+      prisma.project.findMany({
+        orderBy: [{ order: "asc" }, { createdAt: "desc" }],
+      }),
+      prisma.experience.findMany({
+        orderBy: [{ order: "asc" }, { createdAt: "desc" }],
+      }),
+      prisma.education.findMany({
+        orderBy: [{ order: "asc" }, { createdAt: "desc" }],
+      }),
+      prisma.certification.findMany({
+        orderBy: [{ order: "asc" }, { issuedAt: "desc" }],
+      }),
+    ]);
 
   if (!profile) {
     return (
@@ -181,37 +154,42 @@ export default async function Home() {
   );
 
   const sections = [
-    projects.length > 0 && { href: "#work", name: "Work" },
+    projects.length > 0 && { href: "#projects", name: "Projects" },
+    experience.length > 0 && { href: "#experience", name: "Experience" },
+    education.length > 0 && { href: "#education", name: "Education" },
     skills.length > 0 && { href: "#skills", name: "Skills" },
     certifications.length > 0 && { href: "#credentials", name: "Credentials" },
-  ].filter((link): link is { href: string; name: string } => Boolean(link));
+  ].filter((link): link is NavItem => Boolean(link));
 
-  const featuredProject = projects[0];
-  const secondaryProjects = projects.slice(1);
+  const projectViews: ProjectView[] = projects.map((project) => ({
+    id: project.id,
+    title: project.title,
+    description: project.description,
+    imageUrls: parseProjectImages({
+      imageUrl: project.imageUrl,
+      imageUrls: project.imageUrls,
+    }),
+    techStack: parseProjectList(project.techStack),
+    projectUrl: project.projectUrl,
+    sourceUrl: project.sourceUrl,
+  }));
+
   const heroImage =
     profile.avatarUrl ??
-    featuredProject?.imageUrl ??
+    projectViews[0]?.imageUrls[0] ??
     certifications[0]?.imageUrl;
-  const themeColor = normalizeThemeColor(profile.themeColor);
 
   return (
-    <div
-      data-theme-color={themeColor}
-      className="glass-page min-h-dvh bg-background text-foreground"
-    >
-      <header className="glass-nav sticky top-0 z-40 border-b border-border/60">
+    <div className="glass-page flex min-h-dvh flex-col bg-background text-foreground">
+      <LavaLamp />
+
+      <header className="sticky top-0 z-40 bg-background/5 backdrop-blur-[30px] backdrop-saturate-200">
         <PageFrame className="flex min-h-16 items-center justify-between gap-4">
           <Link href="/" className="min-w-0 truncate text-sm font-semibold">
             {profile.name}
           </Link>
 
-          <nav className="hidden items-center gap-1 md:flex">
-            {sections.map((section) => (
-              <Button key={section.href} asChild variant="ghost" size="text-only">
-                <a href={section.href}>{section.name}</a>
-              </Button>
-            ))}
-          </nav>
+          <NavLinks items={sections} className="hidden md:flex" />
 
           <div className="flex shrink-0 items-center gap-1">
             <ThemeToggle />
@@ -231,19 +209,19 @@ export default async function Home() {
         </PageFrame>
       </header>
 
-      <main className="relative z-10 grid w-full max-w-full overflow-x-hidden">
+      <main className="relative z-10 grid w-full max-w-full flex-1 content-start">
         <PageSection>
           <div className="grid gap-8 lg:grid-cols-2">
             <div className="flex min-w-0 w-full flex-col items-stretch gap-4">
               <div className="flex w-full items-center gap-5">
                 {heroImage && (
-                  <div className="glass-portrait relative size-32 shrink-0 overflow-hidden rounded-full sm:size-40 lg:size-48">
+                  <div className="relative size-32 shrink-0 overflow-hidden rounded-full bg-primary sm:size-40 lg:size-48">
                     <Image
                       src={heroImage}
                       alt={profile.name}
                       fill
                       priority
-                      sizes="12rem"
+                      sizes="calc(var(--spacing) * 48)"
                       className="object-cover"
                     />
                   </div>
@@ -305,57 +283,94 @@ export default async function Home() {
           </div>
         </PageSection>
 
-        {projects.length > 0 && (
-          <PageSection id="work">
-            <SectionTitle>Work</SectionTitle>
+        {projectViews.length > 0 && (
+          <PageSection id="projects">
+            <SectionTitle>Projects</SectionTitle>
+            <ProjectShowcase projects={projectViews} />
+          </PageSection>
+        )}
 
-            {featuredProject && (
-              <article className="grid gap-6 lg:grid-cols-5 lg:items-start">
-                <GlassImage
-                  src={featuredProject.imageUrl}
-                  alt={featuredProject.title}
-                  className="aspect-video rounded-2xl lg:col-span-3"
-                />
-                <div className="flex flex-col gap-4 lg:col-span-2">
-                  <h3 className="text-2xl leading-tight font-semibold text-balance md:text-3xl">
-                    {featuredProject.title}
-                  </h3>
-                  <p className="text-base leading-7 text-muted-foreground">
-                    {featuredProject.description}
-                  </p>
-                  <ProjectActions
-                    projectUrl={featuredProject.projectUrl}
-                    sourceUrl={featuredProject.sourceUrl}
-                  />
-                </div>
-              </article>
-            )}
+        {experience.length > 0 && (
+          <PageSection id="experience">
+            <SectionTitle>Experience</SectionTitle>
 
-            {secondaryProjects.length > 0 && (
-              <div className="grid gap-x-6 gap-y-8 md:grid-cols-2 xl:grid-cols-3">
-                {secondaryProjects.map((project) => (
-                  <article key={project.id} className="flex flex-col gap-3">
-                    <GlassImage
-                      src={project.imageUrl}
-                      alt={project.title}
-                      className="aspect-video rounded-xl"
-                    />
-                    <h3 className="text-xl leading-tight font-semibold text-balance">
-                      {project.title}
-                    </h3>
-                    <p className="text-sm leading-7 text-muted-foreground">
-                      {project.description}
-                    </p>
-                    {(project.projectUrl || project.sourceUrl) && (
-                      <ProjectActions
-                        projectUrl={project.projectUrl}
-                        sourceUrl={project.sourceUrl}
+            <div className="grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-5">
+              {experience.map((item) => {
+                const period = formatPeriod(item.startDate, item.endDate);
+
+                return (
+                  <article
+                    key={item.id}
+                    className="portfolio-item flex flex-col gap-2 rounded-xl outline-none"
+                  >
+                    {item.logoUrl && (
+                      <GlassImage
+                        src={item.logoUrl}
+                        alt={`${item.company} logo`}
+                        className="aspect-square rounded-xl"
+                        imageClassName="object-contain p-4"
                       />
                     )}
+                    <h3 className="text-lg leading-snug font-semibold text-balance">
+                      {item.role}
+                    </h3>
+                    <p className="text-sm font-medium text-primary">
+                      {item.company}
+                    </p>
+                    {(period || item.location) && (
+                      <p className="text-sm text-muted-foreground">
+                        {[period, item.location].filter(Boolean).join(" / ")}
+                      </p>
+                    )}
+                    <p className="line-clamp-4 text-sm leading-6 text-muted-foreground">
+                      {item.description}
+                    </p>
                   </article>
-                ))}
-              </div>
-            )}
+                );
+              })}
+            </div>
+          </PageSection>
+        )}
+
+        {education.length > 0 && (
+          <PageSection id="education">
+            <SectionTitle>Education</SectionTitle>
+
+            <div className="grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-5">
+              {education.map((item) => {
+                const period = formatPeriod(item.startDate, item.endDate);
+
+                return (
+                  <article
+                    key={item.id}
+                    className="portfolio-item flex flex-col gap-2 rounded-xl outline-none"
+                  >
+                    {item.logoUrl && (
+                      <GlassImage
+                        src={item.logoUrl}
+                        alt={`${item.institution} logo`}
+                        className="aspect-square rounded-xl"
+                        imageClassName="object-contain p-4"
+                      />
+                    )}
+                    <h3 className="text-lg leading-snug font-semibold text-balance">
+                      {item.degree}
+                    </h3>
+                    <p className="text-sm font-medium text-primary">
+                      {item.institution}
+                    </p>
+                    {(period || item.location) && (
+                      <p className="text-sm text-muted-foreground">
+                        {[period, item.location].filter(Boolean).join(" / ")}
+                      </p>
+                    )}
+                    <p className="line-clamp-4 text-sm leading-6 text-muted-foreground">
+                      {item.description}
+                    </p>
+                  </article>
+                );
+              })}
+            </div>
           </PageSection>
         )}
 
@@ -389,7 +404,10 @@ export default async function Home() {
                 const issuedYear = certification.issuedAt?.getUTCFullYear();
 
                 return (
-                  <article key={certification.id} className="flex flex-col gap-2">
+                  <article
+                    key={certification.id}
+                    className="portfolio-item flex flex-col gap-2 rounded-xl outline-none"
+                  >
                     <GlassImage
                       src={certification.imageUrl}
                       alt={certification.title}
@@ -426,42 +444,43 @@ export default async function Home() {
           </PageSection>
         )}
 
-        <footer className="glass-nav border-t border-border/60">
-          <PageFrame className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
-            <div className="flex flex-col gap-4">
-              <SectionTitle>Contact</SectionTitle>
-              <a
-                href={`mailto:${profile.email}`}
-                className="inline-flex items-center gap-2 text-lg font-medium text-primary hover:text-primary/80 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-              >
-                {profile.email}
-                <UiIcon icon={ArrowUpRight01Icon} />
-              </a>
-            </div>
-            {socials.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {socials.map((social) => (
-                  <Button
-                    key={social.name}
-                    asChild
-                    variant="glass"
-                    size="icon-only"
-                  >
-                    <a
-                      href={social.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label={social.name}
-                    >
-                      <UiIcon icon={social.icon} className="size-5" />
-                    </a>
-                  </Button>
-                ))}
-              </div>
-            )}
-          </PageFrame>
-        </footer>
       </main>
+
+      <footer className="glass-nav relative z-10">
+        <PageFrame className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
+          <div className="flex flex-col gap-4">
+            <SectionTitle>Contact</SectionTitle>
+            <a
+              href={`mailto:${profile.email}`}
+              className="inline-flex items-center gap-2 text-lg font-medium text-primary hover:text-primary/80 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+            >
+              {profile.email}
+              <UiIcon icon={ArrowUpRight01Icon} />
+            </a>
+          </div>
+          {socials.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {socials.map((social) => (
+                <Button
+                  key={social.name}
+                  asChild
+                  variant="glass"
+                  size="icon-only"
+                >
+                  <a
+                    href={social.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={social.name}
+                  >
+                    <UiIcon icon={social.icon} className="size-5" />
+                  </a>
+                </Button>
+              ))}
+            </div>
+          )}
+        </PageFrame>
+      </footer>
     </div>
   );
 }

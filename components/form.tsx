@@ -1,7 +1,10 @@
 import type { ComponentProps, ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  Field as ShadcnField,
+  FieldLabel,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
@@ -13,12 +16,14 @@ export function Field({
   children: ReactNode;
 }) {
   return (
-    <Label className="flex flex-col items-start gap-2">
-      <span className="font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase">
+    <ShadcnField>
+      <FieldLabel asChild>
+        <span className="font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase">
         {label}
-      </span>
+        </span>
+      </FieldLabel>
       {children}
-    </Label>
+    </ShadcnField>
   );
 }
 
@@ -30,19 +35,17 @@ export function TextArea({ className, ...props }: ComponentProps<"textarea">) {
   return <Textarea {...props} className={cn("min-h-28 w-full", className)} />;
 }
 
-export function PrimaryButton({ className, ...props }: ComponentProps<"button">) {
-  return <Button {...props} className={cn("rounded-full px-5", className)} />;
+export function PrimaryButton({
+  size = "text-only",
+  ...props
+}: ComponentProps<typeof Button>) {
+  return <Button {...props} size={size} />;
 }
 
-export function DangerButton({ className, ...props }: ComponentProps<"button">) {
-  return (
-    <Button
-      {...props}
-      variant="outline"
-      className={cn(
-        "rounded-full border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive",
-        className,
-      )}
-    />
-  );
+export function DangerButton({
+  variant = "destructive",
+  size = "text-only",
+  ...props
+}: ComponentProps<typeof Button>) {
+  return <Button {...props} variant={variant} size={size} />;
 }
