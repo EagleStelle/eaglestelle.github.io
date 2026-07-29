@@ -11,8 +11,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { PeriodLabel } from "@/components/period-label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { toPeriod } from "@/lib/period";
 import { cn } from "@/lib/utils";
 
 export type ProjectView = {
@@ -23,6 +25,8 @@ export type ProjectView = {
   techStack: string[];
   projectUrl: string | null;
   sourceUrl: string | null;
+  startDate: string | null;
+  endDate: string | null;
 };
 
 function UiIcon({
@@ -124,6 +128,7 @@ function ProjectCard({ project }: { project: ProjectView }) {
   const [cardImageIndex, setCardImageIndex] = useState(0);
   const [dialogImageIndex, setDialogImageIndex] = useState(0);
   const images = project.imageUrls;
+  const period = toPeriod(project.startDate, project.endDate);
 
   useEffect(() => {
     if (images.length < 2) return;
@@ -167,9 +172,12 @@ function ProjectCard({ project }: { project: ProjectView }) {
           />
         </div>
 
-        <h3 className="text-xl leading-tight font-semibold text-balance">
-          {project.title}
-        </h3>
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <h3 className="text-xl leading-tight font-semibold text-balance">
+            {project.title}
+          </h3>
+          <PeriodLabel period={period} />
+        </div>
 
         {project.techStack.length > 0 && (
           <div className="flex flex-wrap gap-2">
@@ -237,6 +245,7 @@ function ProjectCard({ project }: { project: ProjectView }) {
               <DialogDescription className="sr-only">
                 {project.title}
               </DialogDescription>
+              <PeriodLabel period={period} />
               {project.techStack.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   {project.techStack.map((tech) => (

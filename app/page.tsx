@@ -18,6 +18,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProjectShowcase, type ProjectView } from "@/components/project-showcase";
+import { Timeline, type TimelineEntry } from "@/components/timeline";
 import { parseProjectImages, parseProjectList } from "@/lib/project-data";
 import { cn } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
@@ -95,10 +96,6 @@ function groupByCategory<T extends { category: string | null }>(items: T[]) {
   return [...groups.entries()];
 }
 
-function formatPeriod(start: string | null, end: string | null) {
-  return [start, end].filter(Boolean).join(" - ");
-}
-
 export default async function Home() {
   const [profile, skills, projects, experience, education, certifications] =
     await Promise.all([
@@ -172,6 +169,30 @@ export default async function Home() {
     techStack: parseProjectList(project.techStack),
     projectUrl: project.projectUrl,
     sourceUrl: project.sourceUrl,
+    startDate: project.startDate,
+    endDate: project.endDate,
+  }));
+
+  const experienceEntries: TimelineEntry[] = experience.map((item) => ({
+    id: item.id,
+    title: item.role,
+    subtitle: item.company,
+    description: item.description,
+    logoUrl: item.logoUrl,
+    location: item.location,
+    startDate: item.startDate,
+    endDate: item.endDate,
+  }));
+
+  const educationEntries: TimelineEntry[] = education.map((item) => ({
+    id: item.id,
+    title: item.degree,
+    subtitle: item.institution,
+    description: item.description,
+    logoUrl: item.logoUrl,
+    location: item.location,
+    startDate: item.startDate,
+    endDate: item.endDate,
   }));
 
   const heroImage =
@@ -215,7 +236,7 @@ export default async function Home() {
             <div className="flex min-w-0 w-full flex-col items-stretch gap-4">
               <div className="flex w-full items-center gap-5">
                 {heroImage && (
-                  <div className="relative size-32 shrink-0 overflow-hidden rounded-full bg-primary sm:size-40 lg:size-48">
+                  <div className="glass-orb relative size-32 shrink-0 overflow-hidden rounded-full sm:size-40 lg:size-48">
                     <Image
                       src={heroImage}
                       alt={profile.name}
@@ -290,87 +311,17 @@ export default async function Home() {
           </PageSection>
         )}
 
-        {experience.length > 0 && (
+        {experienceEntries.length > 0 && (
           <PageSection id="experience">
             <SectionTitle>Experience</SectionTitle>
-
-            <div className="grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-5">
-              {experience.map((item) => {
-                const period = formatPeriod(item.startDate, item.endDate);
-
-                return (
-                  <article
-                    key={item.id}
-                    className="portfolio-item flex flex-col gap-2 rounded-xl outline-none"
-                  >
-                    {item.logoUrl && (
-                      <GlassImage
-                        src={item.logoUrl}
-                        alt={`${item.company} logo`}
-                        className="aspect-square rounded-xl"
-                        imageClassName="object-contain p-4"
-                      />
-                    )}
-                    <h3 className="text-lg leading-snug font-semibold text-balance">
-                      {item.role}
-                    </h3>
-                    <p className="text-sm font-medium text-primary">
-                      {item.company}
-                    </p>
-                    {(period || item.location) && (
-                      <p className="text-sm text-muted-foreground">
-                        {[period, item.location].filter(Boolean).join(" / ")}
-                      </p>
-                    )}
-                    <p className="line-clamp-4 text-sm leading-6 text-muted-foreground">
-                      {item.description}
-                    </p>
-                  </article>
-                );
-              })}
-            </div>
+            <Timeline entries={experienceEntries} />
           </PageSection>
         )}
 
-        {education.length > 0 && (
+        {educationEntries.length > 0 && (
           <PageSection id="education">
             <SectionTitle>Education</SectionTitle>
-
-            <div className="grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-5">
-              {education.map((item) => {
-                const period = formatPeriod(item.startDate, item.endDate);
-
-                return (
-                  <article
-                    key={item.id}
-                    className="portfolio-item flex flex-col gap-2 rounded-xl outline-none"
-                  >
-                    {item.logoUrl && (
-                      <GlassImage
-                        src={item.logoUrl}
-                        alt={`${item.institution} logo`}
-                        className="aspect-square rounded-xl"
-                        imageClassName="object-contain p-4"
-                      />
-                    )}
-                    <h3 className="text-lg leading-snug font-semibold text-balance">
-                      {item.degree}
-                    </h3>
-                    <p className="text-sm font-medium text-primary">
-                      {item.institution}
-                    </p>
-                    {(period || item.location) && (
-                      <p className="text-sm text-muted-foreground">
-                        {[period, item.location].filter(Boolean).join(" / ")}
-                      </p>
-                    )}
-                    <p className="line-clamp-4 text-sm leading-6 text-muted-foreground">
-                      {item.description}
-                    </p>
-                  </article>
-                );
-              })}
-            </div>
+            <Timeline entries={educationEntries} />
           </PageSection>
         )}
 

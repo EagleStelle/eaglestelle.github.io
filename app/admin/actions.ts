@@ -166,6 +166,8 @@ export async function createProject(formData: FormData): Promise<void> {
       techStack: parseProjectList(text(formData, "techStack")).join("\n"),
       projectUrl: optionalText(formData, "projectUrl"),
       sourceUrl: optionalText(formData, "sourceUrl"),
+      startDate: optionalText(formData, "startDate"),
+      endDate: optionalText(formData, "endDate"),
       order: integer(formData, "order"),
     },
   });
@@ -200,6 +202,8 @@ export async function updateProject(formData: FormData): Promise<void> {
       techStack: parseProjectList(text(formData, "techStack")).join("\n"),
       projectUrl: optionalText(formData, "projectUrl"),
       sourceUrl: optionalText(formData, "sourceUrl"),
+      startDate: optionalText(formData, "startDate"),
+      endDate: optionalText(formData, "endDate"),
       order: integer(formData, "order"),
     },
   });

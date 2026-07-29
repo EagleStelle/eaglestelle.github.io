@@ -1,4 +1,5 @@
 import { ImageGalleryUpload } from "@/components/image-gallery-upload";
+import { DatePickerInput } from "@/components/date-picker-input";
 import { ActionForm } from "@/components/admin/action-form";
 import { DeleteDialog } from "@/components/admin/delete-dialog";
 import { Field, PrimaryButton, TextArea, TextInput } from "@/components/form";
@@ -41,6 +42,12 @@ export default async function AdminProjectsPage() {
           </Field>
           <Field label="Order">
             <TextInput type="number" name="order" defaultValue={0} />
+          </Field>
+          <Field label="Start">
+            <DatePickerInput name="startDate" />
+          </Field>
+          <Field label="End">
+            <DatePickerInput name="endDate" />
           </Field>
         </div>
 
@@ -107,6 +114,18 @@ export default async function AdminProjectsPage() {
                     type="number"
                     name="order"
                     defaultValue={project.order}
+                  />
+                </Field>
+                <Field label="Start">
+                  <DatePickerInput
+                    name="startDate"
+                    defaultValue={project.startDate ?? ""}
+                  />
+                </Field>
+                <Field label="End">
+                  <DatePickerInput
+                    name="endDate"
+                    defaultValue={project.endDate ?? ""}
                   />
                 </Field>
               </div>

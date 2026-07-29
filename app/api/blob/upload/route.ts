@@ -24,7 +24,6 @@ export async function POST(request: Request): Promise<NextResponse> {
           addRandomSuffix: true,
         };
       },
-      onUploadCompleted: async () => {},
     });
 
     return NextResponse.json(jsonResponse);

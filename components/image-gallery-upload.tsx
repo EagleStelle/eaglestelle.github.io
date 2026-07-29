@@ -93,12 +93,7 @@ export function ImageGalleryUpload({
       <span className="font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase">
         {label}
       </span>
-      <input
-        type="hidden"
-        name={name}
-        value={JSON.stringify(urls)}
-        required={required}
-      />
+      <input type="hidden" name={name} value={JSON.stringify(urls)} />
 
       <Input
         type="file"
@@ -106,6 +101,7 @@ export function ImageGalleryUpload({
         multiple
         onChange={handleChange}
         disabled={busy}
+        required={required && urls.length === 0}
         className="cursor-pointer file:mr-3 file:cursor-pointer file:text-sm"
       />
 

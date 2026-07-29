@@ -441,6 +441,23 @@
     -webkit-backdrop-filter: blur(calc(var(--spacing) * 5)) saturate(150%);
   }
 
+  .glass-orb {
+    border: 1px solid color-mix(in oklch, var(--primary), transparent 45%);
+    background:
+      radial-gradient(125% 125% at 50% 0%,
+        color-mix(in oklch, var(--primary), transparent 74%) 0%,
+        color-mix(in oklch, var(--primary), transparent 88%) 48%,
+        color-mix(in oklch, var(--primary), transparent 96%) 100%),
+      color-mix(in oklch, var(--card), transparent 18%);
+    box-shadow:
+      inset 0 1px 0 color-mix(in oklch, var(--primary), transparent 72%),
+      0 0 0 1px color-mix(in oklch, var(--primary), transparent 88%),
+      0 0 calc(var(--spacing) * 6) color-mix(in oklch, var(--primary), transparent 62%),
+      0 calc(var(--spacing) * 3) calc(var(--spacing) * 12) color-mix(in oklch, var(--primary), transparent 72%);
+    backdrop-filter: blur(calc(var(--spacing) * 5)) saturate(150%);
+    -webkit-backdrop-filter: blur(calc(var(--spacing) * 5)) saturate(150%);
+  }
+
   .glass-nav {
     background: color-mix(in srgb, var(--background) 72%, transparent);
     backdrop-filter: blur(16px) saturate(180%);
@@ -453,14 +470,17 @@
       transform 180ms ease;
   }
 
-  .portfolio-item .glass-surface {
+  .portfolio-item .glass-surface,
+  .portfolio-item .glass-orb {
     transition:
       filter 180ms ease,
       transform 180ms ease;
   }
 
   .portfolio-item:hover .glass-surface,
-  .portfolio-item:focus-visible .glass-surface {
+  .portfolio-item:focus-visible .glass-surface,
+  .portfolio-item:hover .glass-orb,
+  .portfolio-item:focus-visible .glass-orb {
     filter: saturate(1.08) brightness(1.04);
   }
 
@@ -468,7 +488,8 @@
     box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring), transparent 50%);
   }
 
-  .portfolio-item:active .glass-surface {
+  .portfolio-item:active .glass-surface,
+  .portfolio-item:active .glass-orb {
     transform: translateY(1px);
   }
 
@@ -477,12 +498,22 @@
     .glass-surface {
       background: var(--card);
     }
+
+    .glass-orb {
+      background: color-mix(in oklch, var(--primary), var(--card) 88%);
+    }
   }
 
   @media (prefers-reduced-transparency: reduce) {
 
     .glass-surface {
       background: var(--card);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+
+    .glass-orb {
+      background: color-mix(in oklch, var(--primary), var(--card) 88%);
       backdrop-filter: none;
       -webkit-backdrop-filter: none;
     }
