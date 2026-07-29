@@ -15,12 +15,12 @@ import { Button } from "@/components/ui/button";
 import { formatDateLabel } from "@/lib/period";
 import { cn } from "@/lib/utils";
 
-export type CredentialView = {
+export type CertificationView = {
   id: number;
   title: string;
   issuer: string;
   imageUrl: string;
-  credentialUrl: string | null;
+  certificationUrl: string | null;
   issuedAt: Date | string | null;
 };
 
@@ -44,14 +44,18 @@ function stopCardOpen(event: MouseEvent<HTMLAnchorElement>) {
   event.stopPropagation();
 }
 
-function CredentialCard({ credential }: { credential: CredentialView }) {
+function CertificationCard({
+  certification,
+}: {
+  certification: CertificationView;
+}) {
   const [open, setOpen] = useState(false);
-  const issuedDateLabel = formatDateLabel(credential.issuedAt);
-  const issuerDate = credential.issuer
-    ? `${credential.issuer}${issuedDateLabel ? ` / ${issuedDateLabel}` : ""}`
+  const issuedDateLabel = formatDateLabel(certification.issuedAt);
+  const issuerDate = certification.issuer
+    ? `${certification.issuer}${issuedDateLabel ? ` / ${issuedDateLabel}` : ""}`
     : issuedDateLabel;
 
-  function openCredential() {
+  function openCertification() {
     setOpen(true);
   }
 
@@ -60,7 +64,7 @@ function CredentialCard({ credential }: { credential: CredentialView }) {
     if (event.key !== "Enter" && event.key !== " ") return;
 
     event.preventDefault();
-    openCredential();
+    openCertification();
   }
 
   return (
@@ -68,15 +72,15 @@ function CredentialCard({ credential }: { credential: CredentialView }) {
       <article
         role="button"
         tabIndex={0}
-        aria-label={`Open ${credential.title}`}
-        onClick={openCredential}
+        aria-label={`Open ${certification.title}`}
+        onClick={openCertification}
         onKeyDown={handleKeyDown}
         className="glass-orb portfolio-item group relative flex aspect-video cursor-pointer flex-col justify-between overflow-hidden rounded-lg p-3 outline-none focus-visible:outline-2 focus-visible:outline-ring sm:p-4"
       >
         <div className="absolute inset-0 overflow-hidden rounded-lg">
           <Image
-            src={credential.imageUrl}
-            alt={credential.title}
+            src={certification.imageUrl}
+            alt={certification.title}
             fill
             sizes="(min-width: 1536px) 20vw, (min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
             className="object-cover rounded-lg"
@@ -93,7 +97,7 @@ function CredentialCard({ credential }: { credential: CredentialView }) {
         />
 
         <div className="relative flex items-start justify-end gap-3">
-          {credential.credentialUrl && (
+          {certification.certificationUrl && (
             <Button
               asChild
               variant="default"
@@ -101,7 +105,7 @@ function CredentialCard({ credential }: { credential: CredentialView }) {
               className="size-8"
             >
               <a
-                href={credential.credentialUrl}
+                href={certification.certificationUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={stopCardOpen}
@@ -115,7 +119,7 @@ function CredentialCard({ credential }: { credential: CredentialView }) {
 
         <div className="relative flex flex-col gap-1">
           <h3 className="text-lg leading-tight font-semibold text-balance sm:text-xl text-white">
-            {credential.title}
+            {certification.title}
           </h3>
           {issuerDate && (
             <p className="flex shrink-0 items-center gap-1.5 font-mono text-xs tracking-[0.08em] text-white/60 uppercase truncate">
@@ -132,7 +136,7 @@ function CredentialCard({ credential }: { credential: CredentialView }) {
         {/* Top header row with title and close button */}
         <div className="flex shrink-0 items-center justify-between gap-4 pb-1">
           <DialogTitle className="text-xl leading-tight font-semibold text-balance text-foreground md:text-2xl">
-            {credential.title}
+            {certification.title}
           </DialogTitle>
           <DialogClose asChild>
             <Button
@@ -151,14 +155,14 @@ function CredentialCard({ credential }: { credential: CredentialView }) {
         </div>
 
         <DialogDescription className="sr-only">
-          {credential.title}
+          {certification.title}
         </DialogDescription>
 
         {/* Strict 16:9 Aspect Ratio Image Container */}
         <div className="relative aspect-video w-full shrink-0 sm:flex-1 overflow-hidden rounded-lg bg-neutral-950/20">
           <Image
-            src={credential.imageUrl}
-            alt={credential.title}
+            src={certification.imageUrl}
+            alt={certification.title}
             fill
             priority
             sizes="(min-width: 1024px) 64rem, 100vw"
@@ -177,15 +181,18 @@ function CredentialCard({ credential }: { credential: CredentialView }) {
   );
 }
 
-export function CredentialShowcase({
-  credentials,
+export function CertificationShowcase({
+  certifications,
 }: {
-  credentials: CredentialView[];
+  certifications: CertificationView[];
 }) {
   return (
     <div className="grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-5">
-      {credentials.map((credential) => (
-        <CredentialCard key={credential.id} credential={credential} />
+      {certifications.map((certification) => (
+        <CertificationCard
+          key={certification.id}
+          certification={certification}
+        />
       ))}
     </div>
   );

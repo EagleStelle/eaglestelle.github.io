@@ -17,7 +17,7 @@ const links = [
   { href: "/admin/projects", name: "Projects" },
   { href: "/admin/experience", name: "Experience" },
   { href: "/admin/education", name: "Education" },
-  { href: "/admin/certifications", name: "Credentials" },
+  { href: "/admin/certifications", name: "Certifications" },
 ];
 
 export default async function ProtectedAdminLayout({

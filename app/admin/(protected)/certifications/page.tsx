@@ -46,8 +46,8 @@ export default async function AdminCertificationsPage() {
           <Field label="Issuer">
             <TextInput name="issuer" required />
           </Field>
-          <Field label="Credential URL">
-            <TextInput type="url" name="credentialUrl" />
+          <Field label="Certification URL">
+            <TextInput type="url" name="certificationUrl" />
           </Field>
           <Field label="Issued at">
             <DatePickerInput name="issuedAt" />
@@ -102,11 +102,11 @@ export default async function AdminCertificationsPage() {
                     required
                   />
                 </Field>
-                <Field label="Credential URL">
+                <Field label="Certification URL">
                   <TextInput
                     type="url"
-                    name="credentialUrl"
-                    defaultValue={certification.credentialUrl ?? ""}
+                    name="certificationUrl"
+                    defaultValue={certification.certificationUrl ?? ""}
                   />
                 </Field>
                 <Field label="Issued at">

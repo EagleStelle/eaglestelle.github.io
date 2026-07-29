@@ -18,7 +18,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProjectShowcase, type ProjectView } from "@/components/project-showcase";
-import { CredentialShowcase, type CredentialView } from "@/components/credential-showcase";
+import { CertificationShowcase, type CertificationView } from "@/components/certification-showcase";
 import { Timeline, type TimelineEntry } from "@/components/timeline";
 import { parseProjectImageList, parseProjectList } from "@/lib/project-data";
 import { cn } from "@/lib/utils";
@@ -61,30 +61,6 @@ function UiIcon({
       icon={icon}
       className={cn("size-4 shrink-0", className)}
     />
-  );
-}
-
-function GlassImage({
-  src,
-  alt,
-  className,
-  imageClassName,
-}: {
-  src: string;
-  alt: string;
-  className?: string;
-  imageClassName?: string;
-}) {
-  return (
-    <div className={cn("glass-surface relative overflow-hidden", className)}>
-      <Image
-        src={src}
-        alt={alt}
-        fill
-        sizes="100vw"
-        className={cn("object-cover", imageClassName)}
-      />
-    </div>
   );
 }
 
@@ -156,7 +132,7 @@ export default async function Home() {
     experience.length > 0 && { href: "#experience", name: "Experience" },
     education.length > 0 && { href: "#education", name: "Education" },
     skills.length > 0 && { href: "#skills", name: "Skills" },
-    certifications.length > 0 && { href: "#credentials", name: "Credentials" },
+    certifications.length > 0 && { href: "#certifications", name: "Certifications" },
   ].filter((link): link is NavItem => Boolean(link));
 
   const projectViews: ProjectView[] = projects.map((project) => ({
@@ -196,12 +172,12 @@ export default async function Home() {
     endDate: item.endDate,
   }));
 
-  const credentialViews: CredentialView[] = certifications.map((item) => ({
+  const certificationViews: CertificationView[] = certifications.map((item) => ({
     id: item.id,
     title: item.title,
     issuer: item.issuer,
     imageUrl: item.imageUrl,
-    credentialUrl: item.credentialUrl,
+    certificationUrl: item.certificationUrl,
     issuedAt: item.issuedAt,
   }));
 
@@ -355,10 +331,10 @@ export default async function Home() {
           </PageSection>
         )}
 
-        {credentialViews.length > 0 && (
-          <PageSection id="credentials">
-            <SectionTitle>Credentials</SectionTitle>
-            <CredentialShowcase credentials={credentialViews} />
+        {certificationViews.length > 0 && (
+          <PageSection id="certifications">
+            <SectionTitle>Certifications</SectionTitle>
+            <CertificationShowcase certifications={certificationViews} />
           </PageSection>
         )}
 

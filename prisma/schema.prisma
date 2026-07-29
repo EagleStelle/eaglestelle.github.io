@@ -75,11 +75,11 @@ model Education {
 }
 
 model Certification {
-  id            Int       @id @default(autoincrement())
-  title         String
-  issuer        String
-  imageUrl      String
-  credentialUrl String?
-  issuedAt      DateTime?
-  order         Int       @default(0)
+  id               Int       @id @default(autoincrement())
+  title            String
+  issuer           String
+  imageUrl         String
+  certificationUrl String?
+  issuedAt         DateTime?
+  order            Int       @default(0)
 }
