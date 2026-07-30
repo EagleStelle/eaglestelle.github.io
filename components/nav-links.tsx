@@ -98,31 +98,49 @@ function NavButton({
   className?: string;
   onClick?: () => void;
 }) {
-  const button = (
+  const isHashLink = item.href.startsWith("#");
+
+  const handleHashClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    onClick?.();
+
+    const targetId = item.href.slice(1);
+    const targetElement = document.getElementById(targetId);
+
+    if (targetElement) {
+      // Delay slightly to allow mobile menu drawer to unmount/unlock body scroll
+      setTimeout(() => {
+        targetElement.scrollIntoView({ behavior: "smooth" });
+        window.history.pushState(null, "", item.href);
+      }, 100);
+    }
+  };
+
+  return (
     <Button
       asChild
       variant={active ? "default" : "ghost"}
       size="text-only"
       className={className}
     >
-      {item.href.startsWith("#") ? (
-        <a href={item.href} aria-current={active ? "page" : undefined}>
+      {isHashLink ? (
+        <a
+          href={item.href}
+          onClick={handleHashClick}
+          aria-current={active ? "page" : undefined}
+        >
           {item.name}
         </a>
       ) : (
-        <Link href={item.href} aria-current={active ? "page" : undefined}>
+        <Link
+          href={item.href}
+          onClick={() => onClick?.()}
+          aria-current={active ? "page" : undefined}
+        >
           {item.name}
         </Link>
       )}
     </Button>
-  );
-
-  if (!onClick) return button;
-
-  return (
-    <span onClick={onClick} className="contents">
-      {button}
-    </span>
   );
 }
 

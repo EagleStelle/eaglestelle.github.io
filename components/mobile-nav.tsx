@@ -36,7 +36,11 @@ export function MobileNav({ name, sections }: Props) {
         </Button>
       </SheetTrigger>
 
-      <SheetContent side="right" className="w-[280px] sm:w-[320px] p-5 flex flex-col gap-5 bg-background text-foreground border-l border-border">
+      <SheetContent
+        side="right"
+        className="w-[280px] sm:w-[320px] p-5 flex flex-col gap-5 bg-background text-foreground border-l border-border"
+        onCloseAutoFocus={(e) => e.preventDefault()}
+      >
         <SheetHeader className="p-0 pb-3 border-b border-border/40 text-left">
           <SheetTitle className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
             Navigation
