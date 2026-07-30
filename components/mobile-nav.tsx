@@ -36,17 +36,17 @@ export function MobileNav({ name, sections }: Props) {
         </Button>
       </SheetTrigger>
 
-      <SheetContent side="right" className="w-full sm:max-w-sm">
-        <SheetHeader>
-          <SheetTitle className="text-base font-semibold">
-            {name}
+      <SheetContent side="right" className="w-[280px] sm:w-[320px] p-5 flex flex-col gap-5 bg-background text-foreground border-l border-border">
+        <SheetHeader className="p-0 pb-3 border-b border-border/40 text-left">
+          <SheetTitle className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+            Navigation
           </SheetTitle>
         </SheetHeader>
 
         <NavLinks
           items={sections}
-          className="flex flex-col items-stretch px-4"
-          itemClassName="h-auto justify-start rounded-none border-b border-border py-5 text-2xl font-semibold"
+          className="flex flex-col items-stretch gap-1.5"
+          itemClassName="w-full justify-start text-base font-medium h-11 px-4 rounded-lg"
           onNavigate={() => setOpen(false)}
         />
       </SheetContent>

@@ -27,7 +27,7 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-const sectionInset = "px-6 py-4 sm:px-8 sm:py-6 lg:px-12 lg:py-8 xl:px-16 xl:py-10";
+const sectionInset = "px-4 py-6 sm:px-8 sm:py-8 lg:px-12 lg:py-10 xl:px-16 xl:py-12";
 
 function PageSection({
   className,
@@ -43,7 +43,7 @@ function PageSection({
 
 function SectionTitle({ children }: { children: ReactNode }) {
   return (
-    <h2 className="text-3xl leading-tight font-semibold text-balance md:text-4xl">
+    <h2 className="text-2xl leading-tight font-semibold tracking-tight text-balance sm:text-3xl md:text-4xl">
       {children}
     </h2>
   );
@@ -264,28 +264,28 @@ export default async function Home() {
         <PageSection>
           <div className="grid gap-8 lg:grid-cols-2">
             <div className="flex min-w-0 w-full flex-col items-stretch gap-4">
-              <div className="flex w-full items-center gap-5">
+              <div className="flex flex-col sm:flex-row w-full items-center sm:items-start gap-4 sm:gap-6">
                 {heroImage && (
-                  <div className="glass-orb relative size-32 shrink-0 overflow-hidden rounded-full sm:size-40 lg:size-48">
+                  <div className="glass-orb relative size-28 shrink-0 overflow-hidden rounded-full sm:size-36 lg:size-44">
                     <Image
                       src={heroImage}
                       alt={profile.name}
                       fill
                       priority
-                      sizes="calc(var(--spacing) * 48)"
+                      sizes="(max-width: 640px) 112px, (max-width: 1024px) 144px, 176px"
                       className="object-cover"
                     />
                   </div>
                 )}
 
-                <div className="flex min-w-0 flex-1 flex-col gap-4">
-                  <h1 className="max-w-5xl text-3xl leading-none font-semibold text-balance sm:text-4xl lg:text-5xl">
+                <div className="flex min-w-0 flex-1 flex-col gap-3 text-center sm:text-left">
+                  <h1 className="max-w-5xl text-2xl leading-tight font-semibold tracking-tight text-balance sm:text-4xl lg:text-5xl">
                     {profile.name}
                   </h1>
-                  <p className="max-w-3xl text-xl leading-tight font-medium text-primary md:text-2xl">
+                  <p className="max-w-3xl text-base leading-snug font-medium text-primary sm:text-xl lg:text-2xl">
                     {profile.headline}
                   </p>
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-1">
                     <Button asChild size="icon-text">
                       <a href="#contact">
                         <UiIcon icon={Mail01Icon} />
@@ -327,7 +327,7 @@ export default async function Home() {
                 </div>
               </div>
 
-              <p className="w-full text-justify text-base leading-7 text-muted-foreground">
+              <p className="w-full text-left text-sm leading-relaxed text-muted-foreground sm:text-base sm:leading-7">
                 {profile.summary}
               </p>
             </div>
@@ -385,7 +385,7 @@ export default async function Home() {
 
       </main>
 
-      <footer id="contact" className="glass-nav relative z-10 scroll-mt-16">
+      <footer id="contact" className="glass-nav relative z-10 scroll-mt-16 pb-28 sm:pb-36 lg:pb-44">
         <PageFrame className="flex flex-col gap-6 py-4 sm:py-6 lg:py-8 xl:py-10">
           <div className="grid gap-8 lg:grid-cols-12 lg:gap-12 lg:items-start">
             <div className="flex flex-col gap-6 lg:col-span-5">

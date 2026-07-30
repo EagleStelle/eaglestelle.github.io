@@ -26,6 +26,18 @@ function useActiveHref(items: NavItem[]) {
   useEffect(() => {
     if (!hasHashLinks) return;
 
+    const handleScroll = () => {
+      const isAtBottom =
+        window.innerHeight + window.scrollY >=
+        document.documentElement.scrollHeight - 60;
+      if (isAtBottom && ids.length > 0) {
+        const lastId = ids[ids.length - 1];
+        if (lastId) {
+          setActiveHash(`#${lastId}`);
+        }
+      }
+    };
+
     const syncHash = () => {
       if (window.location.hash) {
         setActiveHash(window.location.hash);
@@ -34,6 +46,11 @@ function useActiveHref(items: NavItem[]) {
 
     const observer = new IntersectionObserver(
       (entries) => {
+        const isAtBottom =
+          window.innerHeight + window.scrollY >=
+          document.documentElement.scrollHeight - 60;
+        if (isAtBottom && ids.length > 0) return;
+
         const visible = entries
           .filter((entry) => entry.isIntersecting)
           .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
@@ -42,7 +59,7 @@ function useActiveHref(items: NavItem[]) {
           setActiveHash(`#${visible.target.id}`);
         }
       },
-      { rootMargin: "-35% 0px -55% 0px", threshold: [0.1, 0.35, 0.65] },
+      { rootMargin: "-20% 0px -40% 0px", threshold: [0.1, 0.35, 0.65] },
     );
 
     ids.forEach((id) => {
@@ -51,10 +68,14 @@ function useActiveHref(items: NavItem[]) {
     });
 
     syncHash();
+    handleScroll();
+
     window.addEventListener("hashchange", syncHash);
+    window.addEventListener("scroll", handleScroll, { passive: true });
 
     return () => {
       window.removeEventListener("hashchange", syncHash);
+      window.removeEventListener("scroll", handleScroll);
       observer.disconnect();
     };
   }, [hasHashLinks, ids]);

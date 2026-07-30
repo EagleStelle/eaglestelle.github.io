@@ -75,14 +75,14 @@ function CertificationCard({
         aria-label={`Open ${certification.title}`}
         onClick={openCertification}
         onKeyDown={handleKeyDown}
-        className="glass-orb portfolio-item group relative flex aspect-video cursor-pointer flex-col justify-between overflow-hidden rounded-lg p-3 outline-none focus-visible:outline-2 focus-visible:outline-ring sm:p-4"
+        className="glass-orb portfolio-item group relative flex aspect-video cursor-pointer flex-col justify-between overflow-hidden rounded-lg p-2.5 outline-none focus-visible:outline-2 focus-visible:outline-ring sm:p-4"
       >
         <div className="absolute inset-0 overflow-hidden rounded-lg">
           <Image
             src={certification.imageUrl}
             alt={certification.title}
             fill
-            sizes="(min-width: 1536px) 20vw, (min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
+            sizes="(min-width: 1536px) 20vw, (min-width: 1024px) 25vw, 50vw"
             className="object-cover rounded-lg"
           />
         </div>
@@ -102,7 +102,7 @@ function CertificationCard({
               asChild
               variant="default"
               size="icon-only"
-              className="size-8"
+              className="size-7 sm:size-8"
             >
               <a
                 href={certification.certificationUrl}
@@ -117,12 +117,12 @@ function CertificationCard({
           )}
         </div>
 
-        <div className="relative flex flex-col gap-1">
-          <h3 className="text-lg leading-tight font-semibold text-balance sm:text-xl text-white">
+        <div className="relative flex flex-col gap-0.5 sm:gap-1">
+          <h3 className="text-sm leading-tight font-semibold text-balance sm:text-[1.1rem] text-white">
             {certification.title}
           </h3>
           {issuerDate && (
-            <p className="flex shrink-0 items-center gap-1.5 font-mono text-xs tracking-[0.08em] text-white/60 uppercase truncate">
+            <p className="flex shrink-0 items-center gap-1.5 font-mono text-[0.65rem] sm:text-xs tracking-[0.08em] text-white/60 uppercase truncate">
               {issuerDate}
             </p>
           )}
@@ -187,7 +187,7 @@ export function CertificationShowcase({
   certifications: CertificationView[];
 }) {
   return (
-    <div className="grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-5">
+    <div className="grid grid-cols-2 gap-3 sm:gap-x-6 sm:gap-y-8 lg:grid-cols-4 2xl:grid-cols-5">
       {certifications.map((certification) => (
         <CertificationCard
           key={certification.id}
