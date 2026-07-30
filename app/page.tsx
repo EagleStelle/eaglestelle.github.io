@@ -294,7 +294,7 @@ export default async function Home() {
                     </Button>
 
                     {profile.resumeUrl && (
-                      <Button asChild variant="secondary" size="icon-text">
+                      <Button asChild size="icon-text">
                         <a
                           href={profile.resumeUrl}
                           target="_blank"
@@ -327,7 +327,7 @@ export default async function Home() {
                 </div>
               </div>
 
-              <p className="w-full text-left text-sm leading-relaxed text-muted-foreground sm:text-base sm:leading-7">
+              <p className="w-full text-justify text-sm leading-relaxed text-muted-foreground sm:text-base sm:leading-7">
                 {profile.summary}
               </p>
             </div>

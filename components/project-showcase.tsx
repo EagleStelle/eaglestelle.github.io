@@ -363,7 +363,7 @@ function ProjectCard({ project }: { project: ProjectView }) {
             )}
 
             {activeImage && (activeImage.title || activeImage.description) && (
-              <div className="flex min-h-0 flex-col gap-1 lg:flex-1">
+              <div className="hidden min-h-0 flex-col gap-1 lg:flex lg:flex-1">
                 {activeImage.title && (
                   <h3 className="shrink-0 font-heading text-base leading-snug font-medium text-balance">
                     {activeImage.title}
@@ -371,7 +371,7 @@ function ProjectCard({ project }: { project: ProjectView }) {
                 )}
                 {activeImage.description && (
                   <ScrollArea className="max-h-40 min-h-0 lg:max-h-none lg:flex-1">
-                    <p className="pr-3 text-sm leading-6 whitespace-pre-line text-muted-foreground">
+                    <p className="pr-3 text-sm leading-6 text-justify whitespace-pre-line text-muted-foreground">
                       {activeImage.description}
                     </p>
                   </ScrollArea>
@@ -399,7 +399,7 @@ function ProjectCard({ project }: { project: ProjectView }) {
             </DialogHeader>
 
             <ScrollArea className="min-h-0 flex-1">
-              <p className="pr-3 text-base leading-7 whitespace-pre-line text-foreground/85">
+              <p className="pr-3 text-base leading-7 text-justify whitespace-pre-line text-foreground/85">
                 {project.description}
               </p>
             </ScrollArea>

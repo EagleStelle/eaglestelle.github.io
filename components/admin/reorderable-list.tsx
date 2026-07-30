@@ -9,26 +9,28 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 export type ReorderableItem = {
-  id: number;
-  order: number;
+  id: number | string;
+  order?: number;
   content: ReactNode;
 };
 
 type Props = {
   items: ReorderableItem[];
-  entityType:
+  entityType?:
     | "skill"
     | "skillCategory"
     | "project"
     | "experience"
     | "education"
     | "certification";
+  onReorder?: (orderedIds: Array<number | string>) => void;
   className?: string;
 };
 
 export function ReorderableList({
   items,
   entityType,
+  onReorder,
   className = "flex flex-col gap-4",
 }: Props) {
   const [listState, setListState] = useState<{
@@ -51,9 +53,16 @@ export function ReorderableList({
     setList(newList);
     const orderedIds = newList.map((item) => item.id);
 
+    if (onReorder) {
+      onReorder(orderedIds);
+      return;
+    }
+
+    if (!entityType) return;
+
     startTransition(async () => {
       try {
-        await reorderItems(entityType, orderedIds);
+        await reorderItems(entityType, orderedIds.map(Number));
         toast.success("Order updated");
       } catch (cause) {
         toast.error(
@@ -84,6 +93,7 @@ export function ReorderableList({
     if (draggedIndex === null) return;
 
     event.preventDefault();
+    event.stopPropagation();
     event.dataTransfer.dropEffect = "move";
 
     const rect = event.currentTarget.getBoundingClientRect();
@@ -92,10 +102,12 @@ export function ReorderableList({
   }
 
   function handleDrop(event: React.DragEvent) {
+    if (draggedIndex === null) return;
+
     event.preventDefault();
     event.stopPropagation();
 
-    if (draggedIndex === null || dropIndex === null) {
+    if (dropIndex === null) {
       resetDrag();
       return;
     }
@@ -156,12 +168,17 @@ export function ReorderableList({
                 return;
               }
 
+              event.stopPropagation();
               event.dataTransfer.effectAllowed = "move";
+              event.dataTransfer.setData("text/plain", String(item.id));
               setDraggedIndex(index);
             }}
             onDragOver={(event) => handleDragOver(event, index)}
             onDrop={handleDrop}
-            onDragEnd={resetDrag}
+            onDragEnd={(event) => {
+              if (draggedIndex !== null) event.stopPropagation();
+              resetDrag();
+            }}
             className={cn(
               "group relative flex items-stretch gap-3 rounded-xl border border-border/80 bg-card/60 p-4 backdrop-blur-xs transition-all duration-200 hover:border-border hover:bg-card hover:shadow-xs",
               isDragging && "scale-[0.99] border-dashed border-primary opacity-40",

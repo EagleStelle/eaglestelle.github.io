@@ -1,12 +1,18 @@
 "use server";
 
-import { del } from "@vercel/blob";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { destroySession, requireAdmin } from "@/lib/auth";
 import { normalizeThemeColor } from "@/lib/appearance";
 import { normalizeMonthValue } from "@/lib/period";
+import {
+  assertPersistedBlobUrls,
+  deletedBlobUrls,
+  removeBlob,
+  removeBlobs,
+  removeChangedBlobs,
+} from "@/lib/admin-blob-storage";
 import {
   parseProjectImageEntries,
   parseProjectImages,
@@ -68,15 +74,6 @@ function requireId(formData: FormData): number {
   return id;
 }
 
-async function removeBlob(url: string | null | undefined): Promise<void> {
-  if (!url) return;
-  try {
-    await del(url);
-  } catch {
-    return;
-  }
-}
-
 function refresh(path: string): void {
   revalidatePath("/");
   revalidatePath(path);
@@ -87,18 +84,8 @@ function projectImages(formData: FormData): ProjectImage[] {
   if (images.length === 0) {
     throw new Error("Add at least one project image.");
   }
+  assertPersistedBlobUrls(images.map((image) => image.url));
   return images;
-}
-
-async function removeChangedBlobs(
-  previous: string[],
-  next: string[],
-): Promise<void> {
-  await Promise.all(
-    previous
-      .filter((url) => !next.includes(url))
-      .map((url) => removeBlob(url)),
-  );
 }
 
 async function saveSkillCategoryOption(name: string | null): Promise<void> {
@@ -154,14 +141,6 @@ export async function saveProfile(formData: FormData): Promise<void> {
   const resumeUrl = optionalText(formData, "resumeUrl");
   const existing = await prisma.profile.findUnique({ where: { id: 1 } });
 
-  if (existing && existing.avatarUrl && existing.avatarUrl !== avatarUrl) {
-    await removeBlob(existing.avatarUrl);
-  }
-
-  if (existing && existing.resumeUrl && existing.resumeUrl !== resumeUrl) {
-    await removeBlob(existing.resumeUrl);
-  }
-
   const data = {
     name: text(formData, "name"),
     headline: text(formData, "headline"),
@@ -181,6 +160,15 @@ export async function saveProfile(formData: FormData): Promise<void> {
     create: { id: 1, ...data },
     update: data,
   });
+
+  await removeChangedBlobs(
+    [
+      existing?.avatarUrl,
+      existing?.resumeUrl,
+      ...deletedBlobUrls(formData, "avatarUrl"),
+    ],
+    [avatarUrl, resumeUrl],
+  );
 
   refresh("/admin/profile");
 }
@@ -337,16 +325,13 @@ export async function updateProject(formData: FormData): Promise<void> {
   const id = requireId(formData);
   const images = projectImages(formData);
   const existing = await prisma.project.findUnique({ where: { id } });
-
-  if (existing) {
-    await removeChangedBlobs(
-      parseProjectImages({
+  const previousImages = existing
+    ? parseProjectImages({
         imageUrl: existing.imageUrl,
         imageUrls: existing.imageUrls,
-      }),
-      images.map((image) => image.url),
-    );
-  }
+      })
+    : [];
+  const nextImages = images.map((image) => image.url);
 
   await prisma.project.update({
     where: { id },
@@ -364,21 +349,31 @@ export async function updateProject(formData: FormData): Promise<void> {
     },
   });
 
+  await removeChangedBlobs(
+    [...previousImages, ...deletedBlobUrls(formData, "imageUrls")],
+    nextImages,
+  );
+
   refresh("/admin/projects");
 }
 
 export async function deleteProject(formData: FormData): Promise<void> {
   await requireAdmin();
 
-  const deleted = await prisma.project.delete({
+  const project = await prisma.project.findUnique({
     where: { id: requireId(formData) },
   });
-  await Promise.all(
+  if (!project) {
+    throw new Error("Project not found.");
+  }
+
+  await removeBlobs(
     parseProjectImages({
-      imageUrl: deleted.imageUrl,
-      imageUrls: deleted.imageUrls,
-    }).map((url) => removeBlob(url)),
+      imageUrl: project.imageUrl,
+      imageUrls: project.imageUrls,
+    }),
   );
+  await prisma.project.delete({ where: { id: project.id } });
 
   refresh("/admin/projects");
 }
@@ -413,10 +408,6 @@ export async function updateExperience(formData: FormData): Promise<void> {
   const logoUrl = optionalText(formData, "logoUrl");
   const existing = await prisma.experience.findUnique({ where: { id } });
 
-  if (existing && existing.logoUrl !== logoUrl) {
-    await removeBlob(existing.logoUrl);
-  }
-
   await prisma.experience.update({
     where: { id },
     data: {
@@ -432,16 +423,26 @@ export async function updateExperience(formData: FormData): Promise<void> {
     },
   });
 
+  await removeChangedBlobs(
+    [existing?.logoUrl, ...deletedBlobUrls(formData, "logoUrl")],
+    [logoUrl],
+  );
+
   refresh("/admin/experience");
 }
 
 export async function deleteExperience(formData: FormData): Promise<void> {
   await requireAdmin();
 
-  const deleted = await prisma.experience.delete({
+  const experience = await prisma.experience.findUnique({
     where: { id: requireId(formData) },
   });
-  await removeBlob(deleted.logoUrl);
+  if (!experience) {
+    throw new Error("Experience not found.");
+  }
+
+  await removeBlob(experience.logoUrl);
+  await prisma.experience.delete({ where: { id: experience.id } });
 
   refresh("/admin/experience");
 }
@@ -474,10 +475,6 @@ export async function updateEducation(formData: FormData): Promise<void> {
   const logoUrl = optionalText(formData, "logoUrl");
   const existing = await prisma.education.findUnique({ where: { id } });
 
-  if (existing && existing.logoUrl !== logoUrl) {
-    await removeBlob(existing.logoUrl);
-  }
-
   await prisma.education.update({
     where: { id },
     data: {
@@ -491,16 +488,26 @@ export async function updateEducation(formData: FormData): Promise<void> {
     },
   });
 
+  await removeChangedBlobs(
+    [existing?.logoUrl, ...deletedBlobUrls(formData, "logoUrl")],
+    [logoUrl],
+  );
+
   refresh("/admin/education");
 }
 
 export async function deleteEducation(formData: FormData): Promise<void> {
   await requireAdmin();
 
-  const deleted = await prisma.education.delete({
+  const education = await prisma.education.findUnique({
     where: { id: requireId(formData) },
   });
-  await removeBlob(deleted.logoUrl);
+  if (!education) {
+    throw new Error("Education not found.");
+  }
+
+  await removeBlob(education.logoUrl);
+  await prisma.education.delete({ where: { id: education.id } });
 
   refresh("/admin/education");
 }
@@ -510,12 +517,13 @@ export async function createCertification(formData: FormData): Promise<void> {
 
   const providedOrder = integer(formData, "order");
   const order = await getNextOrder("certification", providedOrder);
+  const imageUrl = requiredText(formData, "imageUrl", "Certificate image");
 
   await prisma.certification.create({
     data: {
       title: text(formData, "title"),
       issuer: text(formData, "issuer"),
-      imageUrl: text(formData, "imageUrl"),
+      imageUrl,
       certificationUrl: optionalText(formData, "certificationUrl"),
       issuedAt: optionalDate(formData, "issuedAt"),
       order,
@@ -529,12 +537,8 @@ export async function updateCertification(formData: FormData): Promise<void> {
   await requireAdmin();
 
   const id = requireId(formData);
-  const imageUrl = text(formData, "imageUrl");
+  const imageUrl = requiredText(formData, "imageUrl", "Certificate image");
   const existing = await prisma.certification.findUnique({ where: { id } });
-
-  if (existing && existing.imageUrl !== imageUrl) {
-    await removeBlob(existing.imageUrl);
-  }
 
   await prisma.certification.update({
     where: { id },
@@ -548,16 +552,26 @@ export async function updateCertification(formData: FormData): Promise<void> {
     },
   });
 
+  await removeChangedBlobs(
+    [existing?.imageUrl, ...deletedBlobUrls(formData, "imageUrl")],
+    [imageUrl],
+  );
+
   refresh("/admin/certifications");
 }
 
 export async function deleteCertification(formData: FormData): Promise<void> {
   await requireAdmin();
 
-  const deleted = await prisma.certification.delete({
+  const certification = await prisma.certification.findUnique({
     where: { id: requireId(formData) },
   });
-  await removeBlob(deleted.imageUrl);
+  if (!certification) {
+    throw new Error("Certification not found.");
+  }
+
+  await removeBlob(certification.imageUrl);
+  await prisma.certification.delete({ where: { id: certification.id } });
 
   refresh("/admin/certifications");
 }

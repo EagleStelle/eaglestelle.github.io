@@ -1,20 +1,30 @@
 "use client";
 
 import Image from "next/image";
-import { useRef, useState, type ChangeEvent } from "react";
-import { upload } from "@vercel/blob/client";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+} from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   Cancel01Icon,
   ImageUpload01Icon,
   Loading02Icon,
 } from "@hugeicons/core-free-icons";
+import { useBeforeActionSubmit } from "@/components/admin/action-form";
 import { Button } from "@/components/ui/button";
-import { formatBytes, prepareImageForUpload } from "@/lib/image-compression";
-
-const MAX_SOURCE_BYTES = 20 * 1024 * 1024;
-const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
-const ACCEPTED = "image/jpeg,image/png,image/webp,image/avif";
+import {
+  ACCEPTED_IMAGE_INPUT,
+  compressionNotice,
+  prepareStagedImage,
+  revokeStagedImage,
+  uploadStagedImage,
+  type StagedImageUpload,
+} from "@/lib/admin-image-upload-client";
+import { deletedBlobUrlsField } from "@/lib/image-upload";
 
 type Props = {
   name: string;
@@ -24,6 +34,16 @@ type Props = {
   required?: boolean;
 };
 
+type ImageState =
+  | {
+      kind: "saved";
+      url: string;
+    }
+  | {
+      kind: "pending";
+      staged: StagedImageUpload;
+    };
+
 export default function ImageUpload({
   name,
   folder,
@@ -31,11 +51,59 @@ export default function ImageUpload({
   defaultValue,
   required = false,
 }: Props) {
-  const [url, setUrl] = useState(defaultValue ?? "");
+  const [image, setImage] = useState<ImageState | null>(
+    defaultValue ? { kind: "saved", url: defaultValue } : null,
+  );
+  const [deletedUrls, setDeletedUrls] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const valueRef = useRef<HTMLInputElement>(null);
+  const imageRef = useRef(image);
+
+  useEffect(() => {
+    imageRef.current = image;
+  }, [image]);
+
+  useEffect(() => {
+    return () => {
+      const current = imageRef.current;
+      if (current?.kind === "pending") {
+        revokeStagedImage(current.staged);
+      }
+    };
+  }, []);
+
+  const beforeSubmitTask = useMemo(
+    () => ({
+      hasPending: () => imageRef.current?.kind === "pending",
+      run: async () => {
+        const current = imageRef.current;
+        if (current?.kind !== "pending") return;
+
+        setBusy(true);
+        setError("");
+        try {
+          const url = await uploadStagedImage(folder, current.staged.file);
+          revokeStagedImage(current.staged);
+
+          const next = { kind: "saved", url } satisfies ImageState;
+          imageRef.current = next;
+          if (valueRef.current) {
+            valueRef.current.value = url;
+          }
+          setImage(next);
+          setNotice("");
+        } finally {
+          setBusy(false);
+        }
+      },
+    }),
+    [folder],
+  );
+
+  useBeforeActionSubmit(beforeSubmitTask);
 
   async function handleChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -44,56 +112,80 @@ export default function ImageUpload({
     setError("");
     setNotice("");
 
-    if (file.size > MAX_SOURCE_BYTES) {
-      setError("Image must be 20 MB or smaller before compression.");
-      event.target.value = "";
-      return;
-    }
-
     setBusy(true);
     try {
-      const prepared = await prepareImageForUpload(file);
+      const staged = await prepareStagedImage(file);
+      const current = imageRef.current;
 
-      if (prepared.uploadBytes > MAX_UPLOAD_BYTES) {
-        setError("Compressed image must be 4 MB or smaller.");
-        return;
+      if (current?.kind === "saved") {
+        rememberDeletedUrl(current.url);
+      } else if (current?.kind === "pending") {
+        revokeStagedImage(current.staged);
       }
 
-      const safeName = prepared.file.name.replace(/[^a-zA-Z0-9._-]/g, "-");
-      const blob = await upload(
-        `${folder}/${crypto.randomUUID()}-${safeName}`,
-        prepared.file,
-        {
-          access: "public",
-          handleUploadUrl: "/api/blob/upload",
-        },
-      );
-      setUrl(blob.url);
-      if (prepared.compressed) {
-        setNotice(
-          `Compressed ${formatBytes(prepared.originalBytes)} to ${formatBytes(
-            prepared.uploadBytes,
-          )}.`,
-        );
+      const next = { kind: "pending", staged } satisfies ImageState;
+      imageRef.current = next;
+      if (valueRef.current) {
+        valueRef.current.value = "";
       }
+      setImage(next);
+      setNotice(compressionNotice([staged]));
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Upload failed.");
+      setError(cause instanceof Error ? cause.message : "Image failed.");
     } finally {
       setBusy(false);
       event.target.value = "";
     }
   }
 
+  function rememberDeletedUrl(url: string) {
+    setDeletedUrls((urls) => (urls.includes(url) ? urls : [...urls, url]));
+  }
+
+  function clearImage() {
+    const current = imageRef.current;
+    if (current?.kind === "saved") {
+      rememberDeletedUrl(current.url);
+    } else if (current?.kind === "pending") {
+      revokeStagedImage(current.staged);
+    }
+
+    imageRef.current = null;
+    if (valueRef.current) {
+      valueRef.current.value = "";
+    }
+    setImage(null);
+    setNotice("");
+    if (inputRef.current) inputRef.current.value = "";
+  }
+
+  const savedUrl = image?.kind === "saved" ? image.url : "";
+  const previewUrl =
+    image?.kind === "pending" ? image.staged.previewUrl : savedUrl;
+
   return (
     <div className="flex flex-col gap-2">
       <span className="font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase">
         {label}
       </span>
-      <input type="hidden" name={name} value={url} required={required} />
+      <input
+        ref={valueRef}
+        type="hidden"
+        name={name}
+        value={savedUrl}
+        required={required}
+        readOnly
+      />
+      <input
+        type="hidden"
+        name={deletedBlobUrlsField(name)}
+        value={JSON.stringify(deletedUrls)}
+        readOnly
+      />
       <input
         ref={inputRef}
         type="file"
-        accept={ACCEPTED}
+        accept={ACCEPTED_IMAGE_INPUT}
         onChange={handleChange}
         disabled={busy}
         className="hidden"
@@ -112,15 +204,24 @@ export default function ImageUpload({
           }}
           className="group relative flex size-36 shrink-0 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border border-dashed border-border bg-muted/20 transition-all hover:border-primary/50 hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
         >
-          {url ? (
+          {image ? (
             <>
-              <Image
-                src={url}
-                alt=""
-                fill
-                className="object-cover transition-transform group-hover:scale-105"
-                sizes="144px"
-              />
+              {image.kind === "saved" ? (
+                <Image
+                  src={image.url}
+                  alt=""
+                  fill
+                  className="object-cover transition-transform group-hover:scale-105"
+                  sizes="144px"
+                />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={previewUrl}
+                  alt=""
+                  className="size-full object-cover transition-transform group-hover:scale-105"
+                />
+              )}
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-black/60 opacity-0 backdrop-blur-[2px] transition-opacity group-hover:opacity-100">
                 <HugeiconsIcon
                   aria-hidden="true"
@@ -138,9 +239,7 @@ export default function ImageUpload({
                 title="Clear image"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setUrl("");
-                  setNotice("");
-                  if (inputRef.current) inputRef.current.value = "";
+                  clearImage();
                 }}
                 className="absolute top-2 right-2 z-10 shadow-md"
               >
@@ -168,7 +267,7 @@ export default function ImageUpload({
                 />
               )}
               <span className="text-xs font-medium">
-                {busy ? "Uploading..." : "Upload image"}
+                {busy ? "Preparing..." : "Select image"}
               </span>
             </div>
           )}

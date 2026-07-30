@@ -1,8 +1,10 @@
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { NextResponse } from "next/server";
 import { isAuthenticated } from "@/lib/auth";
-
-const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
+import {
+  ACCEPTED_IMAGE_TYPES,
+  MAX_IMAGE_UPLOAD_BYTES,
+} from "@/lib/image-upload";
 
 export async function POST(request: Request): Promise<NextResponse> {
   const body = (await request.json()) as HandleUploadBody;
@@ -17,13 +19,8 @@ export async function POST(request: Request): Promise<NextResponse> {
         }
 
         return {
-          allowedContentTypes: [
-            "image/jpeg",
-            "image/png",
-            "image/webp",
-            "image/avif",
-          ],
-          maximumSizeInBytes: MAX_UPLOAD_BYTES,
+          allowedContentTypes: [...ACCEPTED_IMAGE_TYPES],
+          maximumSizeInBytes: MAX_IMAGE_UPLOAD_BYTES,
           addRandomSuffix: true,
         };
       },
