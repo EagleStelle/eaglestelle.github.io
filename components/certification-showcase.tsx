@@ -89,11 +89,11 @@ function CertificationCard({
 
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute bottom-0 inset-x-0 h-[52%] bg-gradient-to-t from-neutral-950 via-neutral-950/90 via-50% to-transparent transition-opacity duration-300 group-hover:opacity-0 group-focus-visible:opacity-0"
+          className="pointer-events-none absolute bottom-0 inset-x-0 h-[88%] bg-gradient-to-t from-neutral-950 via-neutral-950/90 via-50% to-transparent transition-opacity duration-300 group-hover:opacity-0 group-focus-visible:opacity-0"
         />
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute bottom-0 inset-x-0 h-[52%] opacity-0 bg-gradient-to-t from-primary via-primary/90 via-50% to-transparent transition-opacity duration-300 group-hover:opacity-100 group-focus-visible:opacity-100"
+          className="pointer-events-none absolute bottom-0 inset-x-0 h-[88%] opacity-0 bg-gradient-to-t from-primary via-primary/90 via-50% to-transparent transition-opacity duration-300 group-hover:opacity-100 group-focus-visible:opacity-100"
         />
 
         <div className="relative flex items-start justify-end gap-3">
@@ -118,7 +118,7 @@ function CertificationCard({
         </div>
 
         <div className="relative flex flex-col gap-0.5 sm:gap-1">
-          <h3 className="text-sm leading-tight font-semibold text-balance sm:text-[1.1rem] text-white">
+          <h3 className="line-clamp-2 text-sm leading-tight font-semibold text-balance sm:text-[1.1rem] text-white">
             {certification.title}
           </h3>
           {issuerDate && (
