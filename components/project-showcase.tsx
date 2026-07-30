@@ -1,9 +1,20 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState, type KeyboardEvent, type MouseEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type MouseEvent,
+} from "react";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
-import { Github01Icon, Globe02Icon } from "@hugeicons/core-free-icons";
+import {
+  ArrowLeft01Icon,
+  ArrowRight01Icon,
+  Github01Icon,
+  Globe02Icon,
+} from "@hugeicons/core-free-icons";
 import {
   Dialog,
   DialogContent,
@@ -239,6 +250,7 @@ function ProjectCard({ project }: { project: ProjectView }) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [cardImageIndex, setCardImageIndex] = useState(0);
   const [dialogImageIndex, setDialogImageIndex] = useState(0);
+  const thumbnailRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const images = project.images;
   const activeImage = images[dialogImageIndex];
   const period = toPeriod(project.startDate, project.endDate);
@@ -253,6 +265,16 @@ function ProjectCard({ project }: { project: ProjectView }) {
 
     return () => window.clearInterval(timer);
   }, [images.length]);
+
+  useEffect(() => {
+    if (!open || images.length < 2) return;
+
+    thumbnailRefs.current[dialogImageIndex]?.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+      inline: "center",
+    });
+  }, [dialogImageIndex, open, images.length]);
 
   function openProject() {
     setDialogImageIndex(cardImageIndex);
@@ -288,11 +310,11 @@ function ProjectCard({ project }: { project: ProjectView }) {
 
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute bottom-0 inset-x-0 h-[52%] bg-gradient-to-t from-neutral-950 via-neutral-950/90 via-50% to-transparent transition-opacity duration-300 group-hover:opacity-0 group-focus-visible:opacity-0"
+          className="pointer-events-none absolute bottom-0 inset-x-0 h-3/4 bg-gradient-to-t from-neutral-950 via-neutral-950/90 via-50% to-transparent transition-opacity duration-300 group-hover:opacity-0 group-focus-visible:opacity-0 sm:h-[52%]"
         />
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute bottom-0 inset-x-0 h-[52%] opacity-0 bg-gradient-to-t from-primary via-primary/90 via-50% to-transparent transition-opacity duration-300 group-hover:opacity-100 group-focus-visible:opacity-100"
+          className="pointer-events-none absolute bottom-0 inset-x-0 h-3/4 opacity-0 bg-gradient-to-t from-primary via-primary/90 via-50% to-transparent transition-opacity duration-300 group-hover:opacity-100 group-focus-visible:opacity-100 sm:h-[52%]"
         />
 
         <div className="relative flex items-start justify-between gap-3">
@@ -317,34 +339,79 @@ function ProjectCard({ project }: { project: ProjectView }) {
       <DialogContent className="flex h-[calc(100dvh-var(--spacing)*6)] flex-col overflow-hidden p-4 sm:max-w-5xl sm:p-5">
         <div className="grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)] gap-5 overflow-hidden lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:grid-rows-1">
           <div className="flex min-w-0 flex-col gap-3 lg:min-h-0">
-            <button
-              type="button"
-              onClick={() => setLightboxOpen(true)}
-              className="glass-orb relative aspect-video w-full shrink-0 cursor-zoom-in overflow-hidden rounded-lg outline-none focus-visible:outline-2 focus-visible:outline-ring"
-            >
-              <ProjectImageStack
-                title={project.title}
-                images={images}
-                activeIndex={dialogImageIndex}
-                sizes="(min-width: 1024px) 54vw, 100vw"
-                fit="contain"
-                priority
-              />
-              <span className="sr-only">Expand image</span>
-            </button>
+            <div className="relative aspect-video w-full shrink-0 p-1 sm:p-1.5">
+              <button
+                type="button"
+                onClick={() => setLightboxOpen(true)}
+                className="glass-orb relative h-full w-full cursor-zoom-in overflow-hidden rounded-lg outline-none focus-visible:outline-2 focus-visible:outline-ring"
+              >
+                <ProjectImageStack
+                  title={project.title}
+                  images={images}
+                  activeIndex={dialogImageIndex}
+                  sizes="(min-width: 1024px) 54vw, 100vw"
+                  fit="contain"
+                  priority
+                />
+                <span className="sr-only">Expand image</span>
+              </button>
+
+              {images.length > 1 && (
+                <>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="icon-only"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 z-10 size-8.5 rounded-full border border-border/40 bg-background/80 text-foreground backdrop-blur-md shadow-md hover:bg-background sm:size-9"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDialogImageIndex(
+                        (prev) => (prev - 1 + images.length) % images.length,
+                      );
+                    }}
+                    aria-label="Previous image"
+                  >
+                    <UiIcon icon={ArrowLeft01Icon} />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="icon-only"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 z-10 size-8.5 rounded-full border border-border/40 bg-background/80 text-foreground backdrop-blur-md shadow-md hover:bg-background sm:size-9"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDialogImageIndex(
+                        (prev) => (prev + 1) % images.length,
+                      );
+                    }}
+                    aria-label="Next image"
+                  >
+                    <UiIcon icon={ArrowRight01Icon} />
+                  </Button>
+                </>
+              )}
+            </div>
 
             {images.length > 1 && (
-              <ScrollArea orientation="horizontal" className="shrink-0">
-                <div className="flex gap-2 pb-2">
+              <ScrollArea orientation="horizontal" className="shrink-0 -mx-1 px-1">
+                <div className="flex gap-2.5 p-2 pb-3">
                   {images.map((image, index) => (
                     <Button
                       key={`${image.url}-thumb-${index}`}
+                      ref={(el) => {
+                        thumbnailRefs.current[index] = el;
+                      }}
                       type="button"
                       variant={
                         index === dialogImageIndex ? "default" : "secondary"
                       }
                       size="icon-only"
-                      className="relative aspect-square size-14 shrink-0 overflow-hidden rounded-lg p-0"
+                      className={cn(
+                        "relative aspect-square size-14 shrink-0 overflow-hidden rounded-lg p-0 transition-all duration-200",
+                        index === dialogImageIndex
+                          ? "glass-orb z-10 scale-[1.03]"
+                          : "opacity-75 hover:opacity-100",
+                      )}
                       onClick={() => setDialogImageIndex(index)}
                     >
                       <Image

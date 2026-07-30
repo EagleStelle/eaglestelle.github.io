@@ -23,6 +23,7 @@ export default async function AdminProjectsPage() {
       <ActionForm
         action={createProject}
         success="Project added."
+        resetOnSuccess
         className="flex flex-col gap-5"
       >
         <div className="flex flex-col gap-2">

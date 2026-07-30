@@ -17,6 +17,7 @@ type Props = Omit<ComponentProps<"form">, "action"> & {
   action: (formData: FormData) => Promise<void>;
   success: string;
   children: ReactNode;
+  resetOnSuccess?: boolean;
 };
 
 type FormSubmitCaptureEvent = Parameters<
@@ -47,10 +48,12 @@ export function ActionForm({
   action,
   success,
   children,
+  resetOnSuccess = false,
   onSubmitCapture,
   ...props
 }: Props) {
   const tasksRef = useRef(new Set<BeforeSubmitTask>());
+  const formRef = useRef<HTMLFormElement>(null);
   const skipPrepareRef = useRef(false);
   const preparingRef = useRef(false);
   const [preparing, setPreparing] = useState(false);
@@ -108,12 +111,16 @@ export function ActionForm({
     <ActionFormContext.Provider value={contextValue}>
       <form
         {...props}
+        ref={formRef}
         aria-busy={preparing || props["aria-busy"]}
         onSubmitCapture={handleSubmitCapture}
         action={async (formData) => {
           try {
             await action(formData);
             toast.success(success);
+            if (resetOnSuccess) {
+              formRef.current?.reset();
+            }
           } catch (cause) {
             toast.error(
               cause instanceof Error ? cause.message : "Something went wrong.",

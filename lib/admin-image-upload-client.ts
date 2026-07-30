@@ -19,15 +19,6 @@ export type StagedImageUpload = PreparedImageUpload & {
   previewUrl: string;
 };
 
-export function sortImageFiles(files: File[]): File[] {
-  return [...files].sort((a, b) =>
-    a.name.localeCompare(b.name, undefined, {
-      numeric: true,
-      sensitivity: "base",
-    }),
-  );
-}
-
 export async function prepareStagedImage(file: File): Promise<StagedImageUpload> {
   const [image] = await prepareStagedImages([file]);
   if (!image) {

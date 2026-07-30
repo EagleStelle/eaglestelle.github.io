@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { format, isValid, parseISO } from "date-fns";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -73,11 +73,28 @@ export function MonthInput({
   const [year, setYear] = useState(
     () => toParts(normalizeMonthValue(defaultValue))?.year ?? today.getFullYear(),
   );
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const selected = toParts(value);
   const label = toLabel(value);
   const pageStart = Math.floor(year / YEARS_PER_PAGE) * YEARS_PER_PAGE;
   const step = view === "month" ? 1 : YEARS_PER_PAGE;
+
+  useEffect(() => {
+    const form = inputRef.current?.form;
+    if (!form) return undefined;
+
+    function handleReset() {
+      const normalized = normalizeMonthValue(defaultValue);
+      setValue(normalized);
+      setOpen(false);
+      setView("month");
+      setYear(toParts(normalized)?.year ?? new Date().getFullYear());
+    }
+
+    form.addEventListener("reset", handleReset);
+    return () => form.removeEventListener("reset", handleReset);
+  }, [defaultValue]);
 
   function handleOpenChange(next: boolean) {
     if (next) {
@@ -95,7 +112,7 @@ export function MonthInput({
 
   return (
     <div className={cn("w-full", className)}>
-      <input type="hidden" name={name} value={value ?? ""} />
+      <input ref={inputRef} type="hidden" name={name} value={value ?? ""} />
       <Popover open={open} onOpenChange={handleOpenChange}>
         <PopoverTrigger asChild>
           <Button

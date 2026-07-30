@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -24,7 +25,6 @@ import {
   compressionNotice,
   prepareStagedImages,
   revokeStagedImage,
-  sortImageFiles,
   uploadStagedImage,
   type StagedImageUpload,
 } from "@/lib/admin-image-upload-client";
@@ -50,15 +50,18 @@ type GalleryImage =
       staged: StagedImageUpload;
     });
 
+const EMPTY_PROJECT_IMAGES: ProjectImage[] = [];
+
 export function ImageGalleryUpload({
   name,
   folder,
   label,
-  defaultValue = [],
+  defaultValue,
   required = false,
 }: Props) {
+  const savedDefaultImages = defaultValue ?? EMPTY_PROJECT_IMAGES;
   const [images, setImages] = useState<GalleryImage[]>(
-    defaultValue.map(toSavedImage),
+    () => savedDefaultImages.map(toSavedImage),
   );
   const [deletedUrls, setDeletedUrls] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
@@ -71,6 +74,35 @@ export function ImageGalleryUpload({
   useEffect(() => {
     imagesRef.current = images;
   }, [images]);
+
+  const resetImages = useCallback(() => {
+    const nextImages = savedDefaultImages.map(toSavedImage);
+
+    imagesRef.current.forEach((image) => {
+      if (image.kind === "pending") {
+        revokeStagedImage(image.staged);
+      }
+    });
+
+    imagesRef.current = nextImages;
+    if (inputRef.current) inputRef.current.value = "";
+    if (valueRef.current) {
+      valueRef.current.value = serializeGalleryImages(nextImages);
+    }
+    setImages(nextImages);
+    setDeletedUrls([]);
+    setError("");
+    setNotice("");
+    setBusy(false);
+  }, [savedDefaultImages]);
+
+  useEffect(() => {
+    const form = valueRef.current?.form;
+    if (!form) return undefined;
+
+    form.addEventListener("reset", resetImages);
+    return () => form.removeEventListener("reset", resetImages);
+  }, [resetImages]);
 
   useEffect(() => {
     return () => {
@@ -128,7 +160,7 @@ export function ImageGalleryUpload({
   useBeforeActionSubmit(beforeSubmitTask);
 
   async function handleChange(event: ChangeEvent<HTMLInputElement>) {
-    const files = sortImageFiles(Array.from(event.target.files ?? []));
+    const files = Array.from(event.target.files ?? []);
     if (files.length === 0) return;
 
     setError("");
