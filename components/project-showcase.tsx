@@ -242,6 +242,7 @@ function ProjectCard({ project }: { project: ProjectView }) {
   const images = project.images;
   const activeImage = images[dialogImageIndex];
   const period = toPeriod(project.startDate, project.endDate);
+  const previewDescription = project.description.trim().split(/\r?\n/)[0];
 
   useEffect(() => {
     if (images.length < 2) return;
@@ -308,7 +309,7 @@ function ProjectCard({ project }: { project: ProjectView }) {
           </h3>
           <PeriodLabel period={period} className="text-white/60" />
           <p className="line-clamp-2 text-sm leading-6 text-white/80">
-            {project.description}
+            {previewDescription}
           </p>
         </div>
       </article>
