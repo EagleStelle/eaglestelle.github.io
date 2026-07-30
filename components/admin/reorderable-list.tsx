@@ -3,13 +3,10 @@
 import { useState, useTransition, type ReactNode } from "react";
 import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  ArrowDown01Icon,
-  ArrowUp01Icon,
-  DragDropVerticalIcon,
-} from "@hugeicons/core-free-icons";
+import { DragDropVerticalIcon } from "@hugeicons/core-free-icons";
 import { reorderItems } from "@/app/admin/actions";
-import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 export type ReorderableItem = {
   id: number;
@@ -39,7 +36,10 @@ export function ReorderableList({
     list: ReorderableItem[];
   }>({ sourceItems: items, list: items });
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [dropIndex, setDropIndex] = useState<number | null>(null);
+  const [handleIndex, setHandleIndex] = useState<number | null>(null);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [draft, setDraft] = useState("");
   const [isPending, startTransition] = useTransition();
   const list = listState.sourceItems === items ? listState.list : items;
 
@@ -64,45 +64,59 @@ export function ReorderableList({
     });
   }
 
-  function move(index: number, direction: -1 | 1) {
-    const target = index + direction;
-    if (target < 0 || target >= list.length) return;
+  function moveTo(index: number, target: number) {
+    const clamped = Math.min(Math.max(target, 0), list.length - 1);
+    if (clamped === index) return;
 
     const next = [...list];
     const [moved] = next.splice(index, 1);
-    next.splice(target, 0, moved);
+    next.splice(clamped, 0, moved);
     handleSaveReorder(next);
   }
 
-  function handleDragStart(index: number) {
-    setDraggedIndex(index);
+  function resetDrag() {
+    setDraggedIndex(null);
+    setDropIndex(null);
+    setHandleIndex(null);
   }
 
-  function handleDragOver(e: React.DragEvent, index: number) {
-    e.preventDefault();
-    if (draggedIndex === null || draggedIndex === index) return;
-    setDragOverIndex(index);
+  function handleDragOver(event: React.DragEvent, index: number) {
+    if (draggedIndex === null) return;
+
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    const isAfter = event.clientY > rect.top + rect.height / 2;
+    setDropIndex(index + (isAfter ? 1 : 0));
   }
 
-  function handleDrop(index: number) {
-    if (draggedIndex === null || draggedIndex === index) {
-      setDraggedIndex(null);
-      setDragOverIndex(null);
+  function handleDrop(event: React.DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (draggedIndex === null || dropIndex === null) {
+      resetDrag();
       return;
     }
 
-    const next = [...list];
-    const [draggedItem] = next.splice(draggedIndex, 1);
-    next.splice(index, 0, draggedItem);
-
-    setDraggedIndex(null);
-    setDragOverIndex(null);
-    handleSaveReorder(next);
+    const target = dropIndex > draggedIndex ? dropIndex - 1 : dropIndex;
+    const source = draggedIndex;
+    resetDrag();
+    moveTo(source, target);
   }
 
-  function handleDragEnd() {
-    setDraggedIndex(null);
-    setDragOverIndex(null);
+  function startEditing(index: number) {
+    setEditingIndex(index);
+    setDraft(String(index + 1));
+  }
+
+  function commitEditing(index: number) {
+    const parsed = Number.parseInt(draft, 10);
+    setEditingIndex(null);
+
+    if (!Number.isFinite(parsed)) return;
+    moveTo(index, parsed - 1);
   }
 
   if (list.length === 0) {
@@ -110,77 +124,133 @@ export function ReorderableList({
   }
 
   return (
-    <div className={className}>
+    <div
+      className={className}
+      aria-busy={isPending}
+      onDragOver={(event) => {
+        if (draggedIndex !== null) event.preventDefault();
+      }}
+      onDrop={handleDrop}
+    >
       {list.map((item, index) => {
         const isDragging = draggedIndex === index;
-        const isTarget = dragOverIndex === index;
+        const isEditing = editingIndex === index;
+        const showLineBefore =
+          draggedIndex !== null &&
+          dropIndex === index &&
+          dropIndex !== draggedIndex &&
+          dropIndex !== draggedIndex + 1;
+        const showLineAfter =
+          draggedIndex !== null &&
+          dropIndex === index + 1 &&
+          dropIndex !== draggedIndex &&
+          dropIndex !== draggedIndex + 1;
 
         return (
           <div
             key={item.id}
-            draggable
-            onDragStart={() => handleDragStart(index)}
-            onDragOver={(e) => handleDragOver(e, index)}
-            onDrop={() => handleDrop(index)}
-            onDragEnd={handleDragEnd}
-            className={`group relative flex items-stretch gap-3 rounded-xl border border-border/80 bg-card/60 p-4 backdrop-blur-xs transition-all duration-200 hover:border-border hover:bg-card hover:shadow-xs ${
-              isDragging ? "opacity-40 scale-[0.99] border-dashed border-primary" : ""
-            } ${isTarget ? "ring-2 ring-primary/50 border-primary" : ""}`}
+            draggable={handleIndex === index}
+            onDragStart={(event) => {
+              if (handleIndex !== index) {
+                event.preventDefault();
+                return;
+              }
+
+              event.dataTransfer.effectAllowed = "move";
+              setDraggedIndex(index);
+            }}
+            onDragOver={(event) => handleDragOver(event, index)}
+            onDrop={handleDrop}
+            onDragEnd={resetDrag}
+            className={cn(
+              "group relative flex items-stretch gap-3 rounded-xl border border-border/80 bg-card/60 p-4 backdrop-blur-xs transition-all duration-200 hover:border-border hover:bg-card hover:shadow-xs",
+              isDragging && "scale-[0.99] border-dashed border-primary opacity-40",
+            )}
           >
-            {/* Left Grip Handle & Move Controls */}
-            <div className="flex shrink-0 flex-col items-center justify-center gap-1 border-r border-border/50 pr-3">
-              <div
-                title="Drag to reorder"
-                className="cursor-grab active:cursor-grabbing p-1 text-muted-foreground transition-colors hover:text-foreground"
+            {showLineBefore && (
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-x-3 -top-2.5 h-0.5 rounded-full bg-primary"
+              />
+            )}
+            {showLineAfter && (
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-x-3 -bottom-2.5 h-0.5 rounded-full bg-primary"
+              />
+            )}
+
+            <div className="flex shrink-0 flex-col items-center justify-center gap-2 border-r border-border/50 pr-3">
+              <button
+                type="button"
+                title="Drag to reorder, or focus and press arrow keys"
+                aria-label={`Reorder item ${index + 1}, currently position ${index + 1} of ${list.length}`}
+                onPointerDown={() => setHandleIndex(index)}
+                onPointerUp={() => setHandleIndex(null)}
+                onKeyDown={(event) => {
+                  if (event.key === "ArrowUp") {
+                    event.preventDefault();
+                    moveTo(index, index - 1);
+                  }
+
+                  if (event.key === "ArrowDown") {
+                    event.preventDefault();
+                    moveTo(index, index + 1);
+                  }
+                }}
+                className="cursor-grab rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none active:cursor-grabbing"
               >
                 <HugeiconsIcon
                   aria-hidden="true"
                   icon={DragDropVerticalIcon}
                   className="size-5"
                 />
-              </div>
+              </button>
 
-              <div className="flex flex-col gap-0.5">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-xs"
-                  disabled={index === 0 || isPending}
-                  onClick={() => move(index, -1)}
-                  title="Move up"
-                  className="size-5 rounded-md"
-                >
-                  <HugeiconsIcon
-                    aria-hidden="true"
-                    icon={ArrowUp01Icon}
-                    className="size-3"
-                  />
-                  <span className="sr-only">Move up</span>
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-xs"
-                  disabled={index === list.length - 1 || isPending}
-                  onClick={() => move(index, 1)}
-                  title="Move down"
-                  className="size-5 rounded-md"
-                >
-                  <HugeiconsIcon
-                    aria-hidden="true"
-                    icon={ArrowDown01Icon}
-                    className="size-3"
-                  />
-                  <span className="sr-only">Move down</span>
-                </Button>
-              </div>
+              {isEditing ? (
+                <Input
+                  autoFocus
+                  type="text"
+                  inputMode="numeric"
+                  value={draft}
+                  aria-label="Set position"
+                  onFocus={(event) => event.currentTarget.select()}
+                  onChange={(event) =>
+                    setDraft(event.target.value.replace(/\D/g, ""))
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      commitEditing(index);
+                    }
 
-              <span className="mt-auto font-mono text-[10px] text-muted-foreground/70">
-                #{index + 1}
-              </span>
+                    if (event.key === "Escape") {
+                      event.preventDefault();
+                      setEditingIndex(null);
+                    }
+                  }}
+                  onBlur={() => commitEditing(index)}
+                  className="h-6 w-10 px-1 text-center font-mono text-[11px] md:text-[11px]"
+                />
+              ) : (
+                <button
+                  type="button"
+                  title="Double-click to set position"
+                  onDoubleClick={() => startEditing(index)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      startEditing(index);
+                    }
+                  }}
+                  disabled={isPending}
+                  className="rounded-md px-1 font-mono text-[10px] text-muted-foreground/70 transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none disabled:opacity-50"
+                >
+                  #{index + 1}
+                </button>
+              )}
             </div>
 
-            {/* Main Item Content */}
             <div className="min-w-0 flex-1">{item.content}</div>
           </div>
         );

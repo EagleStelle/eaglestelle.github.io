@@ -167,12 +167,14 @@ function ProjectImageStack({
   images,
   activeIndex,
   sizes,
+  fit = "cover",
   priority = false,
 }: {
   title: string;
   images: ProjectImage[];
   activeIndex: number;
   sizes: string;
+  fit?: "cover" | "contain";
   priority?: boolean;
 }) {
   return (
@@ -186,7 +188,8 @@ function ProjectImageStack({
           priority={priority && index === 0}
           sizes={sizes}
           className={cn(
-            "object-cover rounded-lg opacity-0 transition-opacity duration-700 ease-out",
+            "rounded-lg opacity-0 transition-opacity duration-700 ease-out",
+            fit === "contain" ? "object-contain" : "object-cover",
             index === activeIndex && "opacity-100",
           )}
         />
@@ -195,8 +198,45 @@ function ProjectImageStack({
   );
 }
 
+function ProjectImageLightbox({
+  open,
+  onOpenChange,
+  image,
+  fallbackTitle,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  image: ProjectImage | undefined;
+  fallbackTitle: string;
+}) {
+  if (!image) return null;
+
+  const label = image.title || fallbackTitle;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="w-[calc(100%-var(--spacing)*4)] max-w-none bg-transparent p-2 ring-0 sm:max-w-[min(96vw,90rem)]">
+        <DialogTitle className="sr-only">{label}</DialogTitle>
+        <DialogDescription className="sr-only">
+          Expanded view of {label}
+        </DialogDescription>
+        <div className="relative h-[calc(100dvh-var(--spacing)*16)] w-full">
+          <Image
+            src={image.url}
+            alt={label}
+            fill
+            sizes="96vw"
+            className="object-contain"
+          />
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function ProjectCard({ project }: { project: ProjectView }) {
   const [open, setOpen] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const [cardImageIndex, setCardImageIndex] = useState(0);
   const [dialogImageIndex, setDialogImageIndex] = useState(0);
   const images = project.images;
@@ -276,15 +316,21 @@ function ProjectCard({ project }: { project: ProjectView }) {
       <DialogContent className="flex h-[calc(100dvh-var(--spacing)*6)] flex-col overflow-hidden p-4 sm:max-w-5xl sm:p-5">
         <div className="grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)] gap-5 overflow-hidden lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:grid-rows-1">
           <div className="flex min-w-0 flex-col gap-3 lg:min-h-0">
-            <div className="glass-orb relative aspect-video w-full shrink-0 overflow-hidden rounded-lg">
+            <button
+              type="button"
+              onClick={() => setLightboxOpen(true)}
+              className="glass-orb relative aspect-video w-full shrink-0 cursor-zoom-in overflow-hidden rounded-lg outline-none focus-visible:outline-2 focus-visible:outline-ring"
+            >
               <ProjectImageStack
                 title={project.title}
                 images={images}
                 activeIndex={dialogImageIndex}
                 sizes="(min-width: 1024px) 54vw, 100vw"
+                fit="contain"
                 priority
               />
-            </div>
+              <span className="sr-only">Expand image</span>
+            </button>
 
             {images.length > 1 && (
               <ScrollArea orientation="horizontal" className="shrink-0">
@@ -365,6 +411,13 @@ function ProjectCard({ project }: { project: ProjectView }) {
           </div>
         </div>
       </DialogContent>
+
+      <ProjectImageLightbox
+        open={lightboxOpen}
+        onOpenChange={setLightboxOpen}
+        image={activeImage}
+        fallbackTitle={project.title}
+      />
     </Dialog>
   );
 }
