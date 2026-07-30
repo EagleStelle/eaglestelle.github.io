@@ -245,9 +245,14 @@
     inset: 0;
     z-index: 0;
     overflow: hidden;
-    mix-blend-mode: screen;
+    mix-blend-mode: multiply;
     pointer-events: none;
-    opacity: 0.42;
+    opacity: 0.26;
+  }
+
+  .dark .lava-lamp {
+    mix-blend-mode: screen;
+    opacity: 0.5;
   }
 
   .lava-lamp__field {
@@ -262,9 +267,9 @@
     border: 0;
     border-radius: 44% 56% 61% 39% / 52% 39% 61% 48%;
     --lava-light-color: var(--primary);
-    --lava-light-core: color-mix(in oklch, var(--lava-light-color), transparent 72%);
-    --lava-light-mid: color-mix(in oklch, var(--lava-light-color), transparent 86%);
-    --lava-light-edge: color-mix(in oklch, var(--lava-light-color), transparent 96%);
+    --lava-light-core: color-mix(in oklch, var(--lava-light-color), transparent 68%);
+    --lava-light-mid: color-mix(in oklch, var(--lava-light-color), transparent 82%);
+    --lava-light-edge: color-mix(in oklch, var(--lava-light-color), transparent 94%);
     background:
       radial-gradient(ellipse at 50% 50%,
         var(--lava-light-core) 0%,
@@ -273,10 +278,10 @@
         transparent 78%),
       radial-gradient(ellipse at 50% 50%,
         transparent 44%,
-        color-mix(in oklch, var(--primary), transparent 94%) 68%,
+        color-mix(in oklch, var(--primary), transparent 92%) 68%,
         transparent 86%);
     background-blend-mode: screen, normal;
-    opacity: 0.1;
+    opacity: 0.18;
     will-change: border-radius, transform;
   }
 
@@ -371,7 +376,7 @@
     --neck-return-rotate: -8deg;
     width: clamp(calc(var(--spacing) * 34), 20vw, calc(var(--spacing) * 72));
     height: clamp(calc(var(--spacing) * 42), 28vw, calc(var(--spacing) * 92));
-    opacity: 0.14;
+    opacity: 0.22;
   }
 
   .lava-blob-c {
@@ -391,7 +396,7 @@
     --neck-return-rotate: 7deg;
     width: clamp(calc(var(--spacing) * 24), 16vw, calc(var(--spacing) * 56));
     height: clamp(calc(var(--spacing) * 30), 22vw, calc(var(--spacing) * 76));
-    opacity: 0.12;
+    opacity: 0.2;
   }
 
   .lava-blob-d {
@@ -411,7 +416,7 @@
     --neck-return-rotate: -6deg;
     width: clamp(calc(var(--spacing) * 18), 12vw, calc(var(--spacing) * 44));
     height: clamp(calc(var(--spacing) * 22), 15vw, calc(var(--spacing) * 54));
-    opacity: 0.1;
+    opacity: 0.16;
   }
 
   .lava-blob-e {
@@ -431,7 +436,7 @@
     --neck-return-rotate: 11deg;
     width: clamp(calc(var(--spacing) * 28), 18vw, calc(var(--spacing) * 64));
     height: clamp(calc(var(--spacing) * 34), 24vw, calc(var(--spacing) * 84));
-    opacity: 0.13;
+    opacity: 0.21;
   }
 
   .glass-surface {

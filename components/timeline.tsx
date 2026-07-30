@@ -106,7 +106,7 @@ export function Timeline({ entries }: { entries: TimelineEntry[] }) {
               </div>
 
               {entry.description && (
-                <p className="max-w-3xl text-xs leading-relaxed whitespace-pre-line text-muted-foreground sm:text-sm sm:leading-6">
+                <p className="w-full text-pretty text-xs leading-relaxed whitespace-pre-line text-muted-foreground sm:text-sm sm:leading-6">
                   {entry.description}
                 </p>
               )}
