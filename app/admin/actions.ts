@@ -54,13 +54,6 @@ function requiredText(formData: FormData, key: string, label: string): string {
   return value;
 }
 
-function optionalDate(formData: FormData, key: string): Date | null {
-  const value = text(formData, key);
-  if (value === "") return null;
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
-
 function integer(formData: FormData, key: string): number {
   const value = Number(formData.get(key));
   return Number.isFinite(value) ? Math.trunc(value) : 0;
@@ -525,7 +518,7 @@ export async function createCertification(formData: FormData): Promise<void> {
       issuer: text(formData, "issuer"),
       imageUrl,
       certificationUrl: optionalText(formData, "certificationUrl"),
-      issuedAt: optionalDate(formData, "issuedAt"),
+      issuedAt: optionalMonth(formData, "issuedAt", "Issued month"),
       order,
     },
   });
@@ -547,7 +540,7 @@ export async function updateCertification(formData: FormData): Promise<void> {
       issuer: text(formData, "issuer"),
       imageUrl,
       certificationUrl: optionalText(formData, "certificationUrl"),
-      issuedAt: optionalDate(formData, "issuedAt"),
+      issuedAt: optionalMonth(formData, "issuedAt", "Issued month"),
       order: integer(formData, "order"),
     },
   });

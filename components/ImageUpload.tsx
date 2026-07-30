@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -44,6 +45,10 @@ type ImageState =
       staged: StagedImageUpload;
     };
 
+function toSavedImage(url: string | null | undefined): ImageState | null {
+  return url ? { kind: "saved", url } : null;
+}
+
 export default function ImageUpload({
   name,
   folder,
@@ -51,8 +56,8 @@ export default function ImageUpload({
   defaultValue,
   required = false,
 }: Props) {
-  const [image, setImage] = useState<ImageState | null>(
-    defaultValue ? { kind: "saved", url: defaultValue } : null,
+  const [image, setImage] = useState<ImageState | null>(() =>
+    toSavedImage(defaultValue),
   );
   const [deletedUrls, setDeletedUrls] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
@@ -65,6 +70,33 @@ export default function ImageUpload({
   useEffect(() => {
     imageRef.current = image;
   }, [image]);
+
+  const resetImage = useCallback(() => {
+    const current = imageRef.current;
+    if (current?.kind === "pending") {
+      revokeStagedImage(current.staged);
+    }
+
+    const next = toSavedImage(defaultValue);
+    imageRef.current = next;
+    if (inputRef.current) inputRef.current.value = "";
+    if (valueRef.current) {
+      valueRef.current.value = next?.kind === "saved" ? next.url : "";
+    }
+    setImage(next);
+    setDeletedUrls([]);
+    setBusy(false);
+    setError("");
+    setNotice("");
+  }, [defaultValue]);
+
+  useEffect(() => {
+    const form = valueRef.current?.form;
+    if (!form) return undefined;
+
+    form.addEventListener("reset", resetImage);
+    return () => form.removeEventListener("reset", resetImage);
+  }, [resetImage]);
 
   useEffect(() => {
     return () => {

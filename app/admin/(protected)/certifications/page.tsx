@@ -1,6 +1,6 @@
 import ImageUpload from "@/components/ImageUpload";
-import { DatePickerInput } from "@/components/date-picker-input";
-import { ActionForm } from "@/components/admin/action-form";
+import { MonthInput } from "@/components/month-input";
+import { ActionForm, CreateActionForm } from "@/components/admin/action-form";
 import { DeleteDialog } from "@/components/admin/delete-dialog";
 import { ReorderableList } from "@/components/admin/reorderable-list";
 import { Field, PrimaryButton, TextInput } from "@/components/form";
@@ -12,10 +12,6 @@ import {
   updateCertification,
 } from "@/app/admin/actions";
 
-function toDateInput(value: Date | null): string {
-  return value ? value.toISOString().slice(0, 10) : "";
-}
-
 export default async function AdminCertificationsPage() {
   const certifications = await prisma.certification.findMany({
     orderBy: [{ order: "asc" }, { issuedAt: "desc" }],
@@ -23,7 +19,7 @@ export default async function AdminCertificationsPage() {
 
   return (
     <div className="flex flex-col gap-10">
-      <ActionForm
+      <CreateActionForm
         action={createCertification}
         success="Certification added."
         className="flex flex-col gap-5"
@@ -52,15 +48,15 @@ export default async function AdminCertificationsPage() {
           <Field label="Certification URL">
             <TextInput type="url" name="certificationUrl" />
           </Field>
-          <Field label="Issued At">
-            <DatePickerInput name="issuedAt" />
+          <Field label="Issued Month">
+            <MonthInput name="issuedAt" />
           </Field>
         </div>
 
         <div>
           <PrimaryButton type="submit">Add Certification</PrimaryButton>
         </div>
-      </ActionForm>
+      </CreateActionForm>
 
       <div className="flex flex-col gap-5">
         <div className="flex flex-col gap-2">
@@ -115,10 +111,10 @@ export default async function AdminCertificationsPage() {
                         defaultValue={certification.certificationUrl ?? ""}
                       />
                     </Field>
-                    <Field label="Issued At">
-                      <DatePickerInput
+                    <Field label="Issued Month">
+                      <MonthInput
                         name="issuedAt"
-                        defaultValue={toDateInput(certification.issuedAt)}
+                        defaultValue={certification.issuedAt}
                       />
                     </Field>
                   </div>

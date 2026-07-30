@@ -1,6 +1,6 @@
 import ImageUpload from "@/components/ImageUpload";
 import { MonthInput } from "@/components/month-input";
-import { ActionForm } from "@/components/admin/action-form";
+import { ActionForm, CreateActionForm } from "@/components/admin/action-form";
 import { DeleteDialog } from "@/components/admin/delete-dialog";
 import { ReorderableList } from "@/components/admin/reorderable-list";
 import { Field, PrimaryButton, TextArea, TextInput } from "@/components/form";
@@ -19,7 +19,7 @@ export default async function AdminEducationPage() {
 
   return (
     <div className="flex flex-col gap-10">
-      <ActionForm
+      <CreateActionForm
         action={createEducation}
         success="Education added."
         className="flex flex-col gap-5"
@@ -55,7 +55,7 @@ export default async function AdminEducationPage() {
         <div>
           <PrimaryButton type="submit">Add Education</PrimaryButton>
         </div>
-      </ActionForm>
+      </CreateActionForm>
 
       <div className="flex flex-col gap-5">
         <div className="flex flex-col gap-2">

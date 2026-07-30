@@ -1,4 +1,4 @@
-import { ActionForm } from "@/components/admin/action-form";
+import { ActionForm, CreateActionForm } from "@/components/admin/action-form";
 import {
   CategorizedSkills,
   type SkillGroup,
@@ -92,7 +92,7 @@ export default async function AdminSkillsPage() {
           <Separator />
         </div>
 
-        <ActionForm
+        <CreateActionForm
           action={createSkillCategory}
           success="Category added."
           className="flex flex-wrap items-end gap-3"
@@ -103,7 +103,7 @@ export default async function AdminSkillsPage() {
             </Field>
           </div>
           <PrimaryButton type="submit">Add Category</PrimaryButton>
-        </ActionForm>
+        </CreateActionForm>
 
         <ReorderableList
           entityType="skillCategory"
@@ -151,7 +151,7 @@ export default async function AdminSkillsPage() {
           <Separator />
         </div>
 
-        <ActionForm
+        <CreateActionForm
           action={createSkill}
           success="Skill added."
           className="flex flex-col gap-4"
@@ -170,7 +170,7 @@ export default async function AdminSkillsPage() {
           <div>
             <PrimaryButton type="submit">Add Skill</PrimaryButton>
           </div>
-        </ActionForm>
+        </CreateActionForm>
       </div>
 
       {/* Skills Grouped by Category Section */}

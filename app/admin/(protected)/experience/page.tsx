@@ -1,6 +1,6 @@
 import ImageUpload from "@/components/ImageUpload";
 import { MonthInput } from "@/components/month-input";
-import { ActionForm } from "@/components/admin/action-form";
+import { ActionForm, CreateActionForm } from "@/components/admin/action-form";
 import { DeleteDialog } from "@/components/admin/delete-dialog";
 import { OptionCombobox } from "@/components/admin/option-combobox";
 import { ReorderableList } from "@/components/admin/reorderable-list";
@@ -31,7 +31,7 @@ export default async function AdminExperiencePage() {
 
   return (
     <div className="flex flex-col gap-10">
-      <ActionForm
+      <CreateActionForm
         action={createExperience}
         success="Experience added."
         className="flex flex-col gap-5"
@@ -83,7 +83,7 @@ export default async function AdminExperiencePage() {
         <div>
           <PrimaryButton type="submit">Add Experience</PrimaryButton>
         </div>
-      </ActionForm>
+      </CreateActionForm>
 
       <div className="flex flex-col gap-5">
         <div className="flex flex-col gap-2">

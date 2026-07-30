@@ -13,12 +13,14 @@ import {
 } from "react";
 import { toast } from "sonner";
 
-type Props = Omit<ComponentProps<"form">, "action"> & {
+export type ActionFormProps = Omit<ComponentProps<"form">, "action"> & {
   action: (formData: FormData) => Promise<void>;
   success: string;
   children: ReactNode;
   resetOnSuccess?: boolean;
 };
+
+type CreateActionFormProps = Omit<ActionFormProps, "resetOnSuccess">;
 
 type FormSubmitCaptureEvent = Parameters<
   NonNullable<ComponentProps<"form">["onSubmitCapture"]>
@@ -51,7 +53,7 @@ export function ActionForm({
   resetOnSuccess = false,
   onSubmitCapture,
   ...props
-}: Props) {
+}: ActionFormProps) {
   const tasksRef = useRef(new Set<BeforeSubmitTask>());
   const formRef = useRef<HTMLFormElement>(null);
   const skipPrepareRef = useRef(false);
@@ -132,4 +134,8 @@ export function ActionForm({
       </form>
     </ActionFormContext.Provider>
   );
+}
+
+export function CreateActionForm(props: CreateActionFormProps) {
+  return <ActionForm {...props} resetOnSuccess />;
 }

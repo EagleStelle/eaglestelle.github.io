@@ -1,15 +1,6 @@
 "use client";
 
-import * as React from "react";
-import {
-  Combobox,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
-} from "@/components/ui/combobox";
-import { cn } from "@/lib/utils";
+import { TextCombobox } from "@/components/admin/text-combobox";
 
 type Props = {
   name: string;
@@ -20,18 +11,6 @@ type Props = {
   className?: string;
 };
 
-function categoryOptions(categories: string[], defaultValue?: string | null) {
-  const options = new Set(
-    categories.map((category) => category.trim()).filter(Boolean),
-  );
-
-  if (defaultValue?.trim()) {
-    options.add(defaultValue.trim());
-  }
-
-  return [...options];
-}
-
 export function SkillCategoryCombobox({
   name,
   categories,
@@ -40,34 +19,16 @@ export function SkillCategoryCombobox({
   required = false,
   className,
 }: Props) {
-  const options = React.useMemo(
-    () => categoryOptions(categories, defaultValue),
-    [categories, defaultValue],
-  );
-
   return (
-    <Combobox
+    <TextCombobox
       name={name}
-      items={options}
-      defaultValue={defaultValue?.trim() || null}
+      options={categories}
+      defaultValue={defaultValue}
+      placeholder={placeholder}
+      emptyPlaceholder="No categories"
+      emptyMessage="No categories found."
       required={required}
-      autoHighlight
-    >
-      <ComboboxInput
-        className={cn("w-full", className)}
-        placeholder={options.length > 0 ? placeholder : "No categories"}
-        showClear
-      />
-      <ComboboxContent>
-        <ComboboxEmpty>No categories found.</ComboboxEmpty>
-        <ComboboxList>
-          {(category: string) => (
-            <ComboboxItem key={category} value={category}>
-              {category}
-            </ComboboxItem>
-          )}
-        </ComboboxList>
-      </ComboboxContent>
-    </Combobox>
+      className={className}
+    />
   );
 }

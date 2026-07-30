@@ -83,7 +83,7 @@ model Certification {
   issuer           String
   imageUrl         String
   certificationUrl String?
-  issuedAt         DateTime?
+  issuedAt         String?
   order            Int       @default(0)
 }
 

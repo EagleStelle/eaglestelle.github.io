@@ -1,6 +1,6 @@
 import { ImageGalleryUpload } from "@/components/image-gallery-upload";
 import { MonthInput } from "@/components/month-input";
-import { ActionForm } from "@/components/admin/action-form";
+import { ActionForm, CreateActionForm } from "@/components/admin/action-form";
 import { DeleteDialog } from "@/components/admin/delete-dialog";
 import { ReorderableList } from "@/components/admin/reorderable-list";
 import { Field, PrimaryButton, TextArea, TextInput } from "@/components/form";
@@ -20,10 +20,9 @@ export default async function AdminProjectsPage() {
 
   return (
     <div className="flex flex-col gap-10">
-      <ActionForm
+      <CreateActionForm
         action={createProject}
         success="Project added."
-        resetOnSuccess
         className="flex flex-col gap-5"
       >
         <div className="flex flex-col gap-2">
@@ -75,7 +74,7 @@ export default async function AdminProjectsPage() {
         <div>
           <PrimaryButton type="submit">Add Project</PrimaryButton>
         </div>
-      </ActionForm>
+      </CreateActionForm>
 
       <div className="flex flex-col gap-5">
         <div className="flex flex-col gap-2">

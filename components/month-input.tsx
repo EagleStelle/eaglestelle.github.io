@@ -37,7 +37,7 @@ const YEARS_PER_PAGE = 12;
 
 type Props = {
   name: string;
-  defaultValue?: string | null;
+  defaultValue?: string | Date | null;
   placeholder?: string;
   className?: string;
 };

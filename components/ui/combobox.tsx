@@ -50,20 +50,27 @@ function ComboboxClear({ className, ...props }: ComboboxPrimitive.Clear.Props) {
   )
 }
 
-function ComboboxInput({
-  className,
-  children,
-  disabled = false,
-  showTrigger = true,
-  showClear = false,
-  ...props
-}: ComboboxPrimitive.Input.Props & {
+const ComboboxInput = React.forwardRef<
+  HTMLInputElement,
+  ComboboxPrimitive.Input.Props & {
   showTrigger?: boolean
   showClear?: boolean
-}) {
+  }
+>(function ComboboxInput(
+  {
+    className,
+    children,
+    disabled = false,
+    showTrigger = true,
+    showClear = false,
+    ...props
+  },
+  ref
+) {
   return (
     <InputGroup className={cn("w-auto", className)}>
       <ComboboxPrimitive.Input
+        ref={ref}
         render={<InputGroupInput disabled={disabled} />}
         {...props}
       />
@@ -85,7 +92,7 @@ function ComboboxInput({
       {children}
     </InputGroup>
   )
-}
+})
 
 function ComboboxContent({
   className,

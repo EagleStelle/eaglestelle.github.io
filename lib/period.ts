@@ -12,9 +12,17 @@ export type Period = {
 };
 
 export function normalizeMonthValue(
-  value: string | null | undefined,
+  value: string | Date | null | undefined,
 ): string | null {
   if (!value) return null;
+
+  if (value instanceof Date) {
+    if (!isValid(value)) return null;
+
+    return `${value.getUTCFullYear()}-${String(
+      value.getUTCMonth() + 1,
+    ).padStart(2, "0")}`;
+  }
 
   const trimmed = value.trim();
   if (trimmed === "") return null;
@@ -33,18 +41,16 @@ export function formatDateLabel(
 ): string | null {
   if (!value) return null;
 
-  if (value instanceof Date) {
-    return isValid(value) ? format(value, "MMM yyyy") : null;
-  }
-
-  const trimmed = value.trim();
-  if (trimmed === "") return null;
-
-  const monthValue = normalizeMonthValue(trimmed);
+  const monthValue = normalizeMonthValue(value);
   if (monthValue) {
     const parsedMonth = parseISO(`${monthValue}-01`);
     return isValid(parsedMonth) ? format(parsedMonth, "MMM yyyy") : null;
   }
+
+  if (value instanceof Date) return null;
+
+  const trimmed = value.trim();
+  if (trimmed === "") return null;
 
   const parsed = parseISO(trimmed);
   return isValid(parsed) ? format(parsed, "MMM yyyy") : trimmed;

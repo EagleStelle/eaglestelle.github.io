@@ -166,7 +166,7 @@ function CertificationCard({
             fill
             priority
             sizes="(min-width: 1024px) 64rem, 100vw"
-            className="object-cover rounded-lg"
+            className="object-contain rounded-lg"
           />
         </div>
 
