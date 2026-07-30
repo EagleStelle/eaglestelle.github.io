@@ -25,7 +25,6 @@ import {
 import { PeriodLabel } from "@/components/period-label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { toPeriod } from "@/lib/period";
 import type { ProjectImage } from "@/lib/project-data";
 import { cn } from "@/lib/utils";
@@ -173,7 +172,7 @@ function ProjectActions({
   );
 }
 
-function ProjectImageStack({
+function ProjectImageFrame({
   title,
   images,
   activeIndex,
@@ -188,24 +187,23 @@ function ProjectImageStack({
   fit?: "cover" | "contain";
   priority?: boolean;
 }) {
+  const image = images[activeIndex] ?? images[0];
+
+  if (!image) return null;
+
   return (
-    <>
-      {images.map((image, index) => (
-        <Image
-          key={`${image.url}-${index}`}
-          src={image.url}
-          alt={index === activeIndex ? (image.title || title) : ""}
-          fill
-          priority={priority && index === 0}
-          sizes={sizes}
-          className={cn(
-            "rounded-lg opacity-0 transition-opacity duration-700 ease-out",
-            fit === "contain" ? "object-contain" : "object-cover",
-            index === activeIndex && "opacity-100",
-          )}
-        />
-      ))}
-    </>
+    <Image
+      key={image.url}
+      src={image.url}
+      alt={image.title || title}
+      fill
+      priority={priority}
+      sizes={sizes}
+      className={cn(
+        "rounded-lg",
+        fit === "contain" ? "object-contain" : "object-cover",
+      )}
+    />
   );
 }
 
@@ -257,14 +255,16 @@ function ProjectCard({ project }: { project: ProjectView }) {
   const previewDescription = project.description.trim().split(/\r?\n/)[0];
 
   useEffect(() => {
-    if (images.length < 2) return;
+    if (images.length < 2 || open) return;
 
     const timer = window.setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+
       setCardImageIndex((index) => (index + 1) % images.length);
     }, 4500);
 
     return () => window.clearInterval(timer);
-  }, [images.length]);
+  }, [images.length, open]);
 
   useEffect(() => {
     if (!open || images.length < 2) return;
@@ -300,7 +300,7 @@ function ProjectCard({ project }: { project: ProjectView }) {
         className="glass-orb portfolio-item group relative flex aspect-video cursor-pointer flex-col justify-between overflow-hidden rounded-lg p-3 outline-none focus-visible:outline-2 focus-visible:outline-ring sm:p-4"
       >
         <div className="absolute inset-0 overflow-hidden rounded-lg">
-          <ProjectImageStack
+          <ProjectImageFrame
             title={project.title}
             images={images}
             activeIndex={cardImageIndex}
@@ -345,11 +345,11 @@ function ProjectCard({ project }: { project: ProjectView }) {
                 onClick={() => setLightboxOpen(true)}
                 className="glass-orb relative h-full w-full cursor-zoom-in overflow-hidden rounded-lg outline-none focus-visible:outline-2 focus-visible:outline-ring"
               >
-                <ProjectImageStack
+                <ProjectImageFrame
                   title={project.title}
                   images={images}
                   activeIndex={dialogImageIndex}
-                  sizes="(min-width: 1024px) 54vw, 100vw"
+                  sizes="96vw"
                   fit="contain"
                   priority
                 />
@@ -393,8 +393,8 @@ function ProjectCard({ project }: { project: ProjectView }) {
             </div>
 
             {images.length > 1 && (
-              <ScrollArea orientation="horizontal" className="shrink-0 -mx-1 px-1">
-                <div className="flex gap-2.5 p-2 pb-3">
+              <div className="native-scrollbar -mx-1 min-w-0 shrink-0 overflow-x-auto overflow-y-hidden overscroll-x-contain px-1">
+                <div className="flex w-max gap-2.5 p-2 pb-3">
                   {images.map((image, index) => (
                     <Button
                       key={`${image.url}-thumb-${index}`}
@@ -427,7 +427,7 @@ function ProjectCard({ project }: { project: ProjectView }) {
                     </Button>
                   ))}
                 </div>
-              </ScrollArea>
+              </div>
             )}
 
             {activeImage && (activeImage.title || activeImage.description) && (
@@ -438,11 +438,11 @@ function ProjectCard({ project }: { project: ProjectView }) {
                   </h3>
                 )}
                 {activeImage.description && (
-                  <ScrollArea className="max-h-40 min-h-0 lg:max-h-none lg:flex-1">
+                  <div className="native-scrollbar max-h-40 min-h-0 overflow-y-auto overscroll-contain lg:max-h-none lg:flex-1">
                     <p className="pr-3 text-sm leading-6 text-justify whitespace-pre-line text-muted-foreground">
                       {activeImage.description}
                     </p>
-                  </ScrollArea>
+                  </div>
                 )}
               </div>
             )}
@@ -466,11 +466,11 @@ function ProjectCard({ project }: { project: ProjectView }) {
               )}
             </DialogHeader>
 
-            <ScrollArea className="min-h-0 flex-1">
+            <div className="native-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain">
               <p className="pr-3 text-base leading-7 text-justify whitespace-pre-line text-foreground/85">
                 {project.description}
               </p>
-            </ScrollArea>
+            </div>
 
             <ProjectActions
               projectUrl={project.projectUrl}

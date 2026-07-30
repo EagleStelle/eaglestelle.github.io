@@ -257,6 +257,37 @@
     opacity: 0.5;
   }
 
+  body[data-scroll-locked] .lava-lamp {
+    display: none;
+  }
+
+  .native-scrollbar {
+    scrollbar-color: color-mix(in oklch, var(--muted-foreground), transparent 46%) transparent;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+  }
+
+  .native-scrollbar::-webkit-scrollbar {
+    width: calc(var(--spacing) * 2.5);
+    height: calc(var(--spacing) * 2.5);
+  }
+
+  .native-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .native-scrollbar::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background: color-mix(in oklch, var(--muted-foreground), transparent 46%);
+    background-clip: content-box;
+  }
+
+  .native-scrollbar:hover::-webkit-scrollbar-thumb {
+    background: color-mix(in oklch, var(--muted-foreground), transparent 30%);
+    background-clip: content-box;
+  }
+
   .lava-lamp__field {
     position: absolute;
     inset: calc(var(--spacing) * -6);

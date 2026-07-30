@@ -40,35 +40,11 @@ function DialogOverlay({
     <DialogPrimitive.Overlay
       data-slot="dialog-overlay"
       className={cn(
-        "fixed inset-0 isolate z-50 bg-background/75 supports-backdrop-filter:bg-background/60 supports-backdrop-filter:backdrop-blur-2xl supports-backdrop-filter:backdrop-brightness-90 supports-backdrop-filter:backdrop-saturate-150 motion-reduce:supports-backdrop-filter:backdrop-blur-md",
+        "fixed inset-0 z-50 bg-background/80 supports-backdrop-filter:bg-background/65 supports-backdrop-filter:backdrop-blur-md",
         className
       )}
       {...props}
-    >
-      <svg aria-hidden="true" focusable="false" className="absolute size-0">
-        <filter id="dialog-refraction">
-          <feTurbulence
-            type="fractalNoise"
-            baseFrequency="0.006 0.009"
-            numOctaves={2}
-            seed={7}
-            result="noise"
-          />
-          <feGaussianBlur in="noise" stdDeviation="1.5" result="softNoise" />
-          <feDisplacementMap
-            in="SourceGraphic"
-            in2="softNoise"
-            scale={26}
-            xChannelSelector="R"
-            yChannelSelector="G"
-          />
-        </filter>
-      </svg>
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 [backdrop-filter:url(#dialog-refraction)] motion-reduce:hidden"
-      />
-    </DialogPrimitive.Overlay>
+    />
   )
 }
 
