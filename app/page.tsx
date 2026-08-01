@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
@@ -24,8 +25,42 @@ import { Timeline, type TimelineEntry } from "@/components/timeline";
 import { parseProjectImageList, parseProjectList } from "@/lib/project-data";
 import { cn } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
+import { SITE_ALIASES, SITE_NAME, SITE_URL } from "@/lib/site";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
+
+export async function generateMetadata(): Promise<Metadata> {
+  const profile = await prisma.profile.findUnique({ where: { id: 1 } });
+
+  const name = profile?.name?.trim() || SITE_NAME;
+  const title = `${name} (${SITE_ALIASES[0]})`;
+  const aliasLine = `${name} (${SITE_ALIASES.join(" / ")})`;
+  const summary = profile?.summary?.trim().replace(/\s+/g, " ");
+  const headline = profile?.headline?.trim();
+
+  const description = [aliasLine, headline, summary]
+    .filter(Boolean)
+    .join(" — ")
+    .slice(0, 300);
+
+  return {
+    title: { absolute: title },
+    description,
+    keywords: [name, ...SITE_ALIASES],
+    alternates: { canonical: "/" },
+    openGraph: {
+      type: "profile",
+      url: SITE_URL,
+      title,
+      description,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
+  };
+}
 
 const sectionInset = "px-4 py-6 sm:px-8 sm:py-8 lg:px-12 lg:py-10 xl:px-16 xl:py-12";
 
@@ -155,7 +190,11 @@ export default async function Home() {
       <div className="flex flex-1 items-center justify-center text-center">
         <p className="text-sm text-muted-foreground">
           No profile yet. Go to{" "}
-          <Link href="/admin" className="underline underline-offset-4">
+          <Link
+            href="/admin"
+            rel="nofollow"
+            className="underline underline-offset-4"
+          >
             /admin
           </Link>{" "}
           to set one up.
@@ -241,8 +280,65 @@ export default async function Home() {
     projectViews[0]?.images[0]?.url ??
     certifications[0]?.imageUrl;
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Person",
+        "@id": `${SITE_URL}/#person`,
+        name: profile.name,
+        alternateName: SITE_ALIASES,
+        url: SITE_URL,
+        jobTitle: profile.headline,
+        description: profile.summary,
+        email: `mailto:${profile.email}`,
+        image: heroImage ? new URL(heroImage, SITE_URL).toString() : undefined,
+        knowsAbout: skills.map((skill) => skill.name),
+        alumniOf: education.map((item) => ({
+          "@type": "EducationalOrganization",
+          name: item.institution,
+        })),
+        worksFor: experience.slice(0, 1).map((item) => ({
+          "@type": "Organization",
+          name: item.company,
+        })),
+        hasCredential: certifications.map((item) => ({
+          "@type": "EducationalOccupationalCredential",
+          name: item.title,
+          credentialCategory: "certificate",
+          recognizedBy: { "@type": "Organization", name: item.issuer },
+          url: item.certificationUrl ?? undefined,
+        })),
+        sameAs: socials.map((social) => social.href),
+      },
+      {
+        "@type": "WebSite",
+        "@id": `${SITE_URL}/#website`,
+        url: SITE_URL,
+        name: profile.name,
+        alternateName: SITE_ALIASES,
+        inLanguage: "en",
+        publisher: { "@id": `${SITE_URL}/#person` },
+        about: { "@id": `${SITE_URL}/#person` },
+      },
+      {
+        "@type": "ProfilePage",
+        "@id": `${SITE_URL}/#profilepage`,
+        url: SITE_URL,
+        name: `${profile.name} (${SITE_ALIASES[0]})`,
+        isPartOf: { "@id": `${SITE_URL}/#website` },
+        mainEntity: { "@id": `${SITE_URL}/#person` },
+      },
+    ],
+  };
+
   return (
     <div className="glass-page flex min-h-dvh flex-col bg-background text-foreground">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
       <LavaLamp />
 
       <header className="sticky top-0 z-40 bg-background/5 backdrop-blur-[30px] backdrop-saturate-200">
@@ -284,6 +380,9 @@ export default async function Home() {
                   </h1>
                   <p className="max-w-3xl text-base leading-snug font-medium text-primary sm:text-xl lg:text-2xl">
                     {profile.headline}
+                  </p>
+                  <p className="text-xs text-muted-foreground sm:text-sm">
+                    Also known as {SITE_ALIASES.join(" · ")}
                   </p>
                   <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-1">
                     <Button asChild size="icon-text">
@@ -437,7 +536,10 @@ export default async function Home() {
           </div>
 
           <div className="flex flex-col items-center justify-between gap-4 text-xs text-muted-foreground sm:flex-row">
-            <p>© {new Date().getFullYear()} {profile.name}. All rights reserved.</p>
+            <p>
+              © {new Date().getFullYear()} {profile.name} ({SITE_ALIASES.join(" / ")}). All rights
+              reserved.
+            </p>
           </div>
         </PageFrame>
       </footer>
