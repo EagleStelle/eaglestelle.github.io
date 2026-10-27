@@ -9,6 +9,8 @@ import {
   Cancel01Icon,
   Github01Icon,
   Globe02Icon,
+  PauseIcon,
+  PlayIcon,
   SourceCodeIcon,
 } from "@hugeicons/core-free-icons";
 import {
@@ -551,7 +553,7 @@ function ProjectDialog({
                   )}
                   {activeImage.description && (
                     <div className="native-scrollbar min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain">
-                      <p className="max-w-[68ch] pr-3 text-justify text-sm leading-6 whitespace-pre-line text-muted-foreground hyphens-auto">
+                      <p className="max-w-[68ch] pr-3 text-sm leading-6 text-pretty whitespace-pre-line text-muted-foreground sm:text-justify sm:hyphens-auto">
                         {activeImage.description}
                       </p>
                     </div>
@@ -573,7 +575,7 @@ function ProjectDialog({
               </DialogHeader>
 
               <div className="native-scrollbar min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain">
-                <p className="max-w-[68ch] pr-3 text-justify text-sm leading-6 whitespace-pre-line text-foreground/90 hyphens-auto sm:text-base sm:leading-7">
+                <p className="max-w-[68ch] pr-3 text-sm leading-6 text-pretty whitespace-pre-line text-foreground/90 sm:text-justify sm:text-base sm:leading-7 sm:hyphens-auto">
                   {project.description}
                 </p>
               </div>
@@ -602,6 +604,7 @@ function ProjectTile({ project, slot }: { project: ProjectView; slot: TileSlot }
   const [hasCycled, setHasCycled] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
+  const [paused, setPaused] = useState(false);
   const inView = useInView(tileRef);
   const reducedMotion = usePrefersReducedMotion();
   const images = project.images;
@@ -610,8 +613,8 @@ function ProjectTile({ project, slot }: { project: ProjectView; slot: TileSlot }
   const previewDescription = project.description.trim().split(/\r?\n/)[0];
   const widePlate = slot.lg === "plate" || slot.lg === "plate-reverse";
   const mediumPlate = slot.md === "plate";
-  const playing =
-    images.length > 1 && inView && !open && !hovered && !focused && !reducedMotion;
+  const slideshow = images.length > 1 && !reducedMotion;
+  const playing = slideshow && inView && !open && !hovered && !focused && !paused;
 
   useEffect(() => {
     if (!playing) return;
@@ -636,7 +639,7 @@ function ProjectTile({ project, slot }: { project: ProjectView; slot: TileSlot }
       style={{ viewTransitionName: `project-${project.id}` }}
       onPointerEnter={() => setHovered(true)}
       onPointerLeave={() => setHovered(false)}
-      onFocus={() => setFocused(true)}
+      onFocus={(event) => setFocused(!event.target.hasAttribute("data-slideshow-toggle"))}
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
           setFocused(false);
@@ -677,7 +680,7 @@ function ProjectTile({ project, slot }: { project: ProjectView; slot: TileSlot }
         {previewDescription && (
           <p
             className={cn(
-              "max-w-[60ch] text-justify text-sm leading-6 text-muted-foreground hyphens-auto line-clamp-2",
+              "max-w-[60ch] text-sm leading-6 text-pretty text-muted-foreground line-clamp-2",
               mediumPlate && "md:line-clamp-3",
               widePlate ? "lg:line-clamp-4 lg:text-base lg:leading-7" : "lg:line-clamp-2",
             )}
@@ -708,18 +711,33 @@ function ProjectTile({ project, slot }: { project: ProjectView; slot: TileSlot }
               )}
             />
           )}
-          {images.length > 1 && (
-            <span
-              aria-hidden="true"
-              className="chart-label absolute bottom-2.5 left-2.5 rounded-sm bg-background/90 px-2 py-1 text-foreground"
+          {slideshow ? (
+            <button
+              type="button"
+              data-slideshow-toggle
+              onClick={() => setPaused((value) => !value)}
+              aria-label={`${paused ? "Play" : "Pause"} ${project.title} slideshow`}
+              className="chart-label absolute bottom-2.5 left-2.5 z-10 flex items-center gap-1.5 rounded-sm bg-background/90 px-2 py-1 text-foreground outline-offset-2 transition-colors duration-150 before:absolute before:-inset-2 before:content-[''] hover:text-primary pointer-coarse:before:-inset-2.5 focus-visible:outline-2"
             >
-              {imageIndex + 1}/{images.length}
-            </span>
+              <UiIcon icon={paused ? PlayIcon : PauseIcon} className="size-3" />
+              <span aria-hidden="true">
+                {imageIndex + 1}/{images.length}
+              </span>
+            </button>
+          ) : (
+            images.length > 1 && (
+              <span
+                aria-hidden="true"
+                className="chart-label absolute bottom-2.5 left-2.5 rounded-sm bg-background/90 px-2 py-1 text-foreground"
+              >
+                {imageIndex + 1}/{images.length}
+              </span>
+            )
           )}
         </div>
 
         {(project.techStack.length > 0 || project.projectUrl || project.sourceUrl) && (
-          <div className="flex min-h-11 items-center gap-3 border-t px-3 py-1.5">
+          <div className="flex min-h-11 items-center gap-3 border-t px-3 py-1.5 pointer-coarse:py-0">
             <FittedTechChips techStack={project.techStack} limit={MAX_TILE_TECH} />
             <TileLinks projectUrl={project.projectUrl} sourceUrl={project.sourceUrl} />
           </div>
