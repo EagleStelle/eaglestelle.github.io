@@ -486,7 +486,7 @@ export default async function Home() {
                   </hgroup>
 
                   {profile.summary && (
-                    <p className="max-w-[65ch] text-justify text-sm leading-6 whitespace-pre-line text-muted-foreground hyphens-auto sm:text-base sm:leading-7 lg:text-lg lg:leading-8">
+                    <p className="max-w-[65ch] text-left text-sm leading-6 text-pretty whitespace-pre-line text-muted-foreground sm:text-justify sm:text-base sm:leading-7 sm:hyphens-auto lg:text-lg lg:leading-8">
                       {profile.summary}
                     </p>
                   )}

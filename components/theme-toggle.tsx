@@ -12,7 +12,6 @@ export function ThemeToggle() {
     <Button
       variant="ghost"
       size="icon-only"
-      aria-label="Toggle theme"
       onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
     >
       <HugeiconsIcon
@@ -25,6 +24,10 @@ export function ThemeToggle() {
         icon={Sun01Icon}
         className="hidden size-4 dark:block"
       />
+      <span className="sr-only">
+        <span className="dark:hidden">Switch to dark theme</span>
+        <span className="hidden dark:inline">Switch to light theme</span>
+      </span>
     </Button>
   );
 }
