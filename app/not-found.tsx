@@ -20,8 +20,8 @@ export default function NotFound() {
         Page not found
       </h1>
       <p className="max-w-[55ch] text-base leading-7 text-muted-foreground">
-        This address doesn&apos;t lead anywhere on the portfolio. It may have moved, or the
-        link may be mistyped.
+        This route hasn&apos;t been trailblazed yet. The page may have moved, or the link
+        may be mistyped.
       </p>
       <Button asChild size="text-only">
         <Link href="/">Back to the portfolio</Link>

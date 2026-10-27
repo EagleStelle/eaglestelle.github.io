@@ -86,11 +86,11 @@ function EntryDescription({ text }: { text: string }) {
 
   if (bulleted) {
     return (
-      <ul className="flex w-full flex-col gap-2 text-justify text-sm leading-7 text-muted-foreground hyphens-auto sm:text-base">
+      <ul className="flex w-full flex-col gap-2 text-sm leading-7 text-pretty text-muted-foreground sm:text-justify sm:text-base sm:hyphens-auto">
         {lines.map((line, index) => (
           <li
             key={`${index}-${line}`}
-            className="relative pl-5 before:absolute before:top-2.5 before:left-0 before:size-2 before:bg-primary before:[clip-path:polygon(50%_0,100%_100%,0_100%)] before:content-['']"
+            className="relative pl-5 before:absolute before:top-2.25 before:left-0 before:size-2.5 before:bg-primary before:[clip-path:polygon(50%_0,62%_38%,100%_50%,62%_62%,50%_100%,38%_62%,0_50%,38%_38%)] before:content-['']"
           >
             {line.replace(BULLET_PATTERN, "")}
           </li>
@@ -102,7 +102,7 @@ function EntryDescription({ text }: { text: string }) {
   return (
     <p
       className={cn(
-        "max-w-[68ch] text-justify text-sm leading-7 whitespace-pre-line text-muted-foreground hyphens-auto sm:text-base",
+        "max-w-[68ch] text-sm leading-7 text-pretty whitespace-pre-line text-muted-foreground sm:text-justify sm:text-base sm:hyphens-auto",
         text.length >= MULTI_COLUMN_MIN_LENGTH &&
           "@3xl:max-w-none @3xl:columns-2 @3xl:gap-x-12",
       )}

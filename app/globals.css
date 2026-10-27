@@ -75,26 +75,27 @@
 }
 
 .dark {
-  --background: oklch(0.17 0.006 75);
-  --foreground: oklch(0.93 0.008 85);
-  --card: oklch(0.2 0.007 75);
-  --card-foreground: oklch(0.93 0.008 85);
-  --popover: oklch(0.215 0.008 75);
-  --popover-foreground: oklch(0.93 0.008 85);
+  --background: oklch(0.155 0.002 75);
+  --foreground: oklch(0.93 0.004 85);
+  --card: oklch(0.19 0.002 75);
+  --card-foreground: oklch(0.93 0.004 85);
+  --popover: oklch(0.205 0.003 75);
+  --popover-foreground: oklch(0.93 0.004 85);
   --primary: oklch(0.82 0.12 82);
-  --primary-foreground: oklch(0.18 0.01 75);
-  --secondary: oklch(0.265 0.008 75);
-  --secondary-foreground: oklch(0.93 0.008 85);
-  --muted: oklch(0.25 0.008 75);
-  --muted-foreground: oklch(0.72 0.012 80);
-  --accent: oklch(0.28 0.02 80);
-  --accent-foreground: oklch(0.93 0.008 85);
+  --primary-foreground: oklch(0.17 0.004 75);
+  --secondary: oklch(0.255 0.003 75);
+  --secondary-foreground: oklch(0.93 0.004 85);
+  --muted: oklch(0.24 0.003 75);
+  --muted-foreground: oklch(0.73 0.006 80);
+  --accent: oklch(0.28 0.012 80);
+  --accent-foreground: oklch(0.93 0.004 85);
   --destructive: oklch(0.7 0.16 27);
-  --border: oklch(0.3 0.008 75);
-  --input: oklch(0.52 0.012 78);
+  --border: oklch(0.3 0.003 75);
+  --input: oklch(0.52 0.005 78);
   --ring: oklch(0.82 0.12 82);
-  --tint: oklch(0.24 0.016 80);
-  --grid-line: oklch(0.93 0.008 85 / 0.055);
+  --tint: oklch(0.225 0.008 80);
+  --grid-line: oklch(0.93 0.004 85 / 0.05);
+  --star: oklch(0.93 0.004 85);
 }
 
 @utility type-wide {
@@ -204,6 +205,41 @@
       linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
     background-size: 7.5rem 7.5rem;
     background-position: -1px -1px;
+  }
+
+  .dark .chart-ground {
+    background-image:
+      radial-gradient(circle at 31% 47%, color-mix(in oklch, var(--star), transparent 55%) 0 0.5px, transparent 1.25px),
+      radial-gradient(circle at 72% 18%, color-mix(in oklch, var(--star), transparent 35%) 0 0.75px, transparent 1.5px),
+      radial-gradient(circle at 14% 76%, color-mix(in oklch, var(--star), transparent 15%) 0 1px, transparent 1.75px),
+      radial-gradient(circle at 58% 62%, var(--primary) 0 1px, transparent 2px),
+      radial-gradient(circle at 86% 39%, var(--star) 0 1.25px, transparent 2.5px),
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+    background-size:
+      131px 149px,
+      211px 173px,
+      293px 251px,
+      457px 389px,
+      613px 541px,
+      7.5rem 7.5rem,
+      7.5rem 7.5rem;
+    background-position: 0 0, 0 0, 0 0, 0 0, 0 0, -1px -1px, -1px -1px;
+  }
+
+  .star-rail {
+    --rail: color-mix(in oklch, var(--muted-foreground), transparent 45%);
+    --tie: color-mix(in oklch, var(--muted-foreground), transparent 68%);
+    background:
+      linear-gradient(to right, var(--rail) 1px, transparent 1px calc(100% - 1px), var(--rail) calc(100% - 1px)),
+      repeating-linear-gradient(to bottom, var(--tie) 0 1px, transparent 1px 6px);
+  }
+
+  .star-rail-lit {
+    background: linear-gradient(to right,
+        var(--primary) 1px,
+        transparent 1px calc(100% - 1px),
+        var(--primary) calc(100% - 1px));
   }
 
   .route-dash {

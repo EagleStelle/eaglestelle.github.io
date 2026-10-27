@@ -8,10 +8,34 @@ export const alt = "Portfolio preview";
 export const revalidate = 3600;
 
 const AVATAR_SIZE = 320;
-const NIGHT = "#12100d";
-const INK = "#ebe8e1";
-const MUTED = "#a8a49b";
+const NIGHT = "#0e0d0c";
+const INK = "#e8e7e4";
+const MUTED = "#a8a6a2";
 const BRASS = "#ebbc63";
+
+function starField(count: number) {
+  let seed = 7;
+  const random = () => {
+    seed = (seed * 1664525 + 1013904223) % 4294967296;
+    return seed / 4294967296;
+  };
+
+  return Array.from({ length: count }, () => {
+    const x = random() * size.width;
+    const y = random() * size.height;
+    const roll = random();
+
+    return {
+      x,
+      y,
+      size: roll < 0.12 ? 3 : roll < 0.45 ? 2 : 1.5,
+      color: roll > 0.9 ? BRASS : INK,
+      opacity: 0.3 + random() * 0.55,
+    };
+  });
+}
+
+const STARS = starField(70);
 
 async function loadAvatar(url: string | null | undefined) {
   if (!url) return undefined;
@@ -50,13 +74,29 @@ export default async function OpengraphImage() {
           alignItems: "center",
           gap: "64px",
           background: NIGHT,
-          backgroundImage: `linear-gradient(rgba(235,232,225,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(235,232,225,0.06) 1px, transparent 1px)`,
+          backgroundImage: `linear-gradient(rgba(232,231,228,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(232,231,228,0.05) 1px, transparent 1px)`,
           backgroundSize: "120px 120px",
           color: INK,
           padding: "80px",
           position: "relative",
         }}
       >
+        {STARS.map((star, index) => (
+          <div
+            key={index}
+            style={{
+              position: "absolute",
+              left: star.x,
+              top: star.y,
+              width: star.size,
+              height: star.size,
+              borderRadius: "50%",
+              background: star.color,
+              opacity: star.opacity,
+            }}
+          />
+        ))}
+
         <div
           style={{
             position: "absolute",
@@ -69,19 +109,40 @@ export default async function OpengraphImage() {
         />
 
         {avatarUrl && (
-          <img
-            src={avatarUrl}
-            width={AVATAR_SIZE}
-            height={AVATAR_SIZE}
+          <div
             style={{
+              display: "flex",
+              position: "relative",
               width: AVATAR_SIZE,
               height: AVATAR_SIZE,
-              borderRadius: "50%",
-              objectFit: "cover",
-              border: `6px solid ${BRASS}`,
               flexShrink: 0,
             }}
-          />
+          >
+            <div
+              style={{
+                position: "absolute",
+                top: -70,
+                left: -70,
+                width: AVATAR_SIZE + 140,
+                height: AVATAR_SIZE + 140,
+                borderRadius: "50%",
+                backgroundImage:
+                  "radial-gradient(circle, rgba(235,188,99,0.32) 0%, rgba(235,188,99,0.32) 48%, rgba(235,188,99,0.1) 56%, rgba(235,188,99,0) 71%)",
+              }}
+            />
+            <img
+              src={avatarUrl}
+              width={AVATAR_SIZE}
+              height={AVATAR_SIZE}
+              style={{
+                width: AVATAR_SIZE,
+                height: AVATAR_SIZE,
+                borderRadius: "50%",
+                objectFit: "cover",
+                border: `6px solid ${BRASS}`,
+              }}
+            />
+          </div>
         )}
 
         <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>

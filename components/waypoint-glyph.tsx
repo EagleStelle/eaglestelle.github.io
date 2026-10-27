@@ -2,6 +2,8 @@ import { cn } from "@/lib/utils";
 
 export type WaypointState = "ahead" | "passed" | "active" | "mark";
 
+const STAR = "M11 3 13 9 19 11 13 13 11 19 9 13 3 11 9 9Z";
+
 export function WaypointGlyph({
   state = "active",
   className,
@@ -19,16 +21,15 @@ export function WaypointGlyph({
       {state === "active" && (
         <circle
           cx="11"
-          cy="12.5"
+          cy="11"
           r="10"
-          fill="none"
-          stroke="currentColor"
           strokeWidth="1"
-          className="text-primary"
+          className="fill-background stroke-primary"
         />
       )}
+      {state === "passed" && <path d={STAR} className="fill-background" />}
       <path
-        d="M11 5.5 17 16.5H5Z"
+        d={STAR}
         strokeWidth="1.5"
         strokeLinejoin="round"
         className={cn(

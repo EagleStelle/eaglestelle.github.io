@@ -158,12 +158,12 @@ export function RouteRail({ className }: { className?: string }) {
       <ol className="relative flex flex-col">
         <span
           aria-hidden="true"
-          className="route-dash absolute top-6 bottom-6 left-2.75 w-px -translate-x-1/2"
+          className="star-rail absolute top-6 bottom-6 left-1.75 w-2"
         />
         <span
           aria-hidden="true"
           ref={railProgressRef}
-          className="absolute top-6 bottom-6 left-2.75 w-0.5 origin-top -translate-x-1/2 bg-primary transform-[scaleY(0)]"
+          className="star-rail-lit absolute top-6 bottom-6 left-1.75 w-2 origin-top transform-[scaleY(0)]"
         />
 
         {waypoints.map((waypoint, index) => {
