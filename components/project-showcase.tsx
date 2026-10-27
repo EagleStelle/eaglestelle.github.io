@@ -807,7 +807,7 @@ export function ProjectShowcase({ projects }: { projects: ProjectView[] }) {
           : ""}
       </p>
 
-      <ul className="grid gap-x-6 gap-y-8 md:grid-cols-2 lg:grid-cols-12 lg:gap-y-10">
+      <ul className="grid grid-cols-1 gap-x-6 gap-y-8 md:grid-cols-2 lg:grid-cols-12 lg:gap-y-10">
         {visible.map((project, index) => (
           <ProjectTile
             key={project.id}
