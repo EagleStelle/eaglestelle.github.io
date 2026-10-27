@@ -1,6 +1,13 @@
+"use client";
+
 import Image from "next/image";
-import { Fragment } from "react";
+import { useEffect, useState } from "react";
+import { ArrowDown01Icon } from "@hugeicons/core-free-icons";
+import { LOGBOOK_OPEN_EVENT } from "@/components/career-track";
+import { PeriodLabel } from "@/components/period-label";
+import { UiIcon } from "@/components/ui-icon";
 import { toPeriod } from "@/lib/period";
+import { cn, initials } from "@/lib/utils";
 
 export type TimelineEntry = {
   id: number;
@@ -14,106 +21,190 @@ export type TimelineEntry = {
   endDate: string | null;
 };
 
-function initials(value: string) {
-  return value
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((word) => word[0]?.toUpperCase())
-    .join("");
+function EntryLogo({ entry }: { entry: TimelineEntry }) {
+  return (
+    <span className="relative flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-sm border bg-card">
+      {entry.logoUrl ? (
+        <Image
+          src={entry.logoUrl}
+          alt=""
+          fill
+          sizes="2.75rem"
+          className="object-cover"
+        />
+      ) : (
+        <span aria-hidden="true" className="chart-label text-muted-foreground">
+          {initials(entry.subtitle)}
+        </span>
+      )}
+    </span>
+  );
 }
 
-function MetaLine({
-  items,
-  primary = false,
-}: {
-  items: string[];
-  primary?: boolean;
-}) {
-  if (items.length === 0) return null;
+function EntrySummary({ entry }: { entry: TimelineEntry }) {
+  const period = toPeriod(entry.startDate, entry.endDate);
+  const roleMeta = [entry.subtitle, entry.employmentType].filter(Boolean).join(" · ");
+
+  return (
+    <>
+      <EntryLogo entry={entry} />
+      <span className="hidden md:block">
+        <PeriodLabel as="span" period={period} className="block" />
+        {entry.locationType && (
+          <span className="chart-label mt-1 block text-muted-foreground">
+            {entry.locationType}
+          </span>
+        )}
+      </span>
+      <span className="flex min-w-0 flex-col gap-1">
+        <span className="text-base leading-snug font-semibold text-balance sm:text-lg">
+          {entry.title}
+        </span>
+        {roleMeta && (
+          <span className="text-sm leading-6 font-medium text-primary">{roleMeta}</span>
+        )}
+        <span className="flex flex-wrap gap-x-3 md:hidden">
+          <PeriodLabel as="span" period={period} />
+          {entry.locationType && (
+            <span className="chart-label text-muted-foreground">{entry.locationType}</span>
+          )}
+        </span>
+      </span>
+    </>
+  );
+}
+
+const BULLET_PATTERN = /^[-•*]\s+/;
+const MULTI_COLUMN_MIN_LENGTH = 280;
+
+function EntryDescription({ text }: { text: string }) {
+  const lines = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const bulleted = lines.length > 1 && lines.every((line) => BULLET_PATTERN.test(line));
+
+  if (bulleted) {
+    return (
+      <ul className="flex w-full flex-col gap-2 text-justify text-sm leading-7 text-muted-foreground hyphens-auto sm:text-base">
+        {lines.map((line, index) => (
+          <li
+            key={`${index}-${line}`}
+            className="relative pl-5 before:absolute before:top-2.5 before:left-0 before:size-2 before:bg-primary before:[clip-path:polygon(50%_0,100%_100%,0_100%)] before:content-['']"
+          >
+            {line.replace(BULLET_PATTERN, "")}
+          </li>
+        ))}
+      </ul>
+    );
+  }
 
   return (
     <p
-      className={
-        primary
-          ? "text-sm leading-6 font-medium text-foreground/85"
-          : "font-mono text-xs leading-5 tracking-[0.08em] text-muted-foreground uppercase"
-      }
+      className={cn(
+        "max-w-[68ch] text-justify text-sm leading-7 whitespace-pre-line text-muted-foreground hyphens-auto sm:text-base",
+        text.length >= MULTI_COLUMN_MIN_LENGTH &&
+          "@3xl:max-w-none @3xl:columns-2 @3xl:gap-x-12",
+      )}
     >
-      {items.map((item, index) => (
-        <Fragment key={`${item}-${index}`}>
-          {index > 0 && (
-            <span aria-hidden="true" className={primary ? "text-primary" : "text-muted-foreground"}>
-              {" \u00B7 "}
-            </span>
-          )}
-          <span className={primary ? "text-primary" : undefined}>
-            {item}
-          </span>
-        </Fragment>
-      ))}
+      {text}
     </p>
   );
 }
 
-export function Timeline({ entries }: { entries: TimelineEntry[] }) {
+const rowGrid =
+  "grid w-full grid-cols-[2.75rem_minmax(0,1fr)_auto] items-start gap-x-3 py-4 text-left sm:gap-x-4 md:grid-cols-[2.75rem_10rem_minmax(0,1fr)_auto] md:gap-x-6 md:py-5";
+
+function LogEntry({
+  entry,
+  entryId,
+  defaultOpen,
+}: {
+  entry: TimelineEntry;
+  entryId: string;
+  defaultOpen: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  const panelId = `${entryId}-details`;
+  const hasDescription = entry.description.trim().length > 0;
+
+  useEffect(() => {
+    const handleOpen = (event: Event) => {
+      if ((event as CustomEvent<string>).detail === entryId) setOpen(true);
+    };
+
+    window.addEventListener(LOGBOOK_OPEN_EVENT, handleOpen);
+    return () => window.removeEventListener(LOGBOOK_OPEN_EVENT, handleOpen);
+  }, [entryId]);
+
+  if (!hasDescription) {
+    return (
+      <li id={entryId} className="border-b border-border">
+        <h3 className={rowGrid}>
+          <EntrySummary entry={entry} />
+          <span className="size-5" />
+        </h3>
+      </li>
+    );
+  }
+
   return (
-    <ol className="flex flex-col">
-      {entries.map((entry) => {
-        const period = toPeriod(entry.startDate, entry.endDate);
-        const roleMeta = [entry.subtitle, entry.employmentType].filter(
-          (item): item is string => Boolean(item),
-        );
-        const dateMeta = [period?.label, entry.locationType].filter(
-          (item): item is string => Boolean(item),
-        );
-
-        return (
-          <li
-            key={entry.id}
-            className="portfolio-item group relative flex gap-3.5 sm:gap-5"
-          >
-            <div className="flex flex-col items-center">
-              <div className="glass-orb relative size-14 sm:size-16 shrink-0 overflow-hidden rounded-lg">
-                {entry.logoUrl ? (
-                  <Image
-                    src={entry.logoUrl}
-                    alt={`${entry.subtitle} logo`}
-                    fill
-                    sizes="(max-width: 640px) 56px, 64px"
-                    className="object-cover"
-                  />
-                ) : (
-                  <span className="flex size-full items-center justify-center font-mono text-sm text-muted-foreground font-semibold sm:text-base">
-                    {initials(entry.subtitle)}
-                  </span>
-                )}
-              </div>
-
-              <span
-                aria-hidden="true"
-                className="w-px flex-1 bg-linear-to-b from-border to-transparent my-2 group-last:hidden"
-              />
-            </div>
-
-            <div className="flex min-w-0 flex-1 flex-col gap-2 pb-8 group-last:pb-0">
-              <div className="flex min-h-14 sm:min-h-16 flex-col justify-center gap-0.5">
-                <h3 className="text-base leading-snug font-semibold text-balance sm:text-xl">
-                  {entry.title}
-                </h3>
-                <MetaLine items={roleMeta} primary />
-                <MetaLine items={dateMeta} />
-              </div>
-
-              {entry.description && (
-                <p className="w-full text-pretty text-xs leading-relaxed whitespace-pre-line text-muted-foreground sm:text-sm sm:leading-6">
-                  {entry.description}
-                </p>
+    <li id={entryId} className="border-b border-border">
+      <h3>
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls={panelId}
+          onClick={() => setOpen((value) => !value)}
+          className={cn(
+            rowGrid,
+            "group rounded-sm outline-offset-2 focus-visible:outline-2",
+          )}
+        >
+          <EntrySummary entry={entry} />
+          <span className="flex size-11 items-center justify-center rounded-full border border-transparent text-muted-foreground transition-colors duration-150 group-hover:border-border group-hover:text-primary pointer-fine:size-8">
+            <UiIcon
+              icon={ArrowDown01Icon}
+              className={cn(
+                "size-4 transition-transform duration-300 ease-out motion-reduce:transition-none",
+                open && "rotate-180",
               )}
-            </div>
-          </li>
-        );
-      })}
+            />
+          </span>
+        </button>
+      </h3>
+      <div
+        id={panelId}
+        inert={!open}
+        className={cn("log-panel grid", open ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}
+      >
+        <div className="overflow-hidden">
+          <div className="@container pb-5 md:pb-6 md:pl-[calc(2.75rem+10rem+3rem)] md:pr-14">
+            <EntryDescription text={entry.description} />
+          </div>
+        </div>
+      </div>
+    </li>
+  );
+}
+
+export function Timeline({
+  entries,
+  idPrefix,
+}: {
+  entries: TimelineEntry[];
+  idPrefix: string;
+}) {
+  return (
+    <ol className="flex flex-col border-t border-border">
+      {entries.map((entry, index) => (
+        <LogEntry
+          key={entry.id}
+          entry={entry}
+          entryId={`${idPrefix}-${entry.id}`}
+          defaultOpen={index === 0}
+        />
+      ))}
     </ol>
   );
 }

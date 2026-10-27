@@ -4,12 +4,37 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
+import { prefersReducedMotion } from "@/lib/use-media";
 import { Button } from "@/components/ui/button";
 
 export type NavItem = {
   href: string;
   name: string;
 };
+
+export function navigateToSection(id: string, delay = 0) {
+  const run = () => {
+    const target = document.getElementById(id);
+    if (!target) return;
+
+    if (!target.hasAttribute("tabindex")) {
+      target.setAttribute("tabindex", "-1");
+    }
+
+    target.focus({ preventScroll: true });
+    target.scrollIntoView({
+      behavior: prefersReducedMotion() ? "auto" : "smooth",
+      block: "start",
+    });
+    window.history.pushState(null, "", `#${id}`);
+  };
+
+  if (delay > 0) {
+    window.setTimeout(run, delay);
+  } else {
+    run();
+  }
+}
 
 function useActiveHref(items: NavItem[]) {
   const pathname = usePathname();
@@ -26,15 +51,14 @@ function useActiveHref(items: NavItem[]) {
   useEffect(() => {
     if (!hasHashLinks) return;
 
+    const isAtBottom = () =>
+      window.innerHeight + window.scrollY >=
+      document.documentElement.scrollHeight - 60;
+
     const handleScroll = () => {
-      const isAtBottom =
-        window.innerHeight + window.scrollY >=
-        document.documentElement.scrollHeight - 60;
-      if (isAtBottom && ids.length > 0) {
-        const lastId = ids[ids.length - 1];
-        if (lastId) {
-          setActiveHash(`#${lastId}`);
-        }
+      const lastId = ids[ids.length - 1];
+      if (isAtBottom() && lastId) {
+        setActiveHash(`#${lastId}`);
       }
     };
 
@@ -46,10 +70,7 @@ function useActiveHref(items: NavItem[]) {
 
     const observer = new IntersectionObserver(
       (entries) => {
-        const isAtBottom =
-          window.innerHeight + window.scrollY >=
-          document.documentElement.scrollHeight - 60;
-        if (isAtBottom && ids.length > 0) return;
+        if (isAtBottom() && ids.length > 0) return;
 
         const visible = entries
           .filter((entry) => entry.isIntersecting)
@@ -100,20 +121,10 @@ function NavButton({
 }) {
   const isHashLink = item.href.startsWith("#");
 
-  const handleHashClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault();
+  const handleHashClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault();
     onClick?.();
-
-    const targetId = item.href.slice(1);
-    const targetElement = document.getElementById(targetId);
-
-    if (targetElement) {
-      // Delay slightly to allow mobile menu drawer to unmount/unlock body scroll
-      setTimeout(() => {
-        targetElement.scrollIntoView({ behavior: "smooth" });
-        window.history.pushState(null, "", item.href);
-      }, 100);
-    }
+    navigateToSection(item.href.slice(1), onClick ? 120 : 0);
   };
 
   return (
@@ -127,7 +138,7 @@ function NavButton({
         <a
           href={item.href}
           onClick={handleHashClick}
-          aria-current={active ? "page" : undefined}
+          aria-current={active ? "location" : undefined}
         >
           {item.name}
         </a>

@@ -1,33 +1,34 @@
 "use client";
 
 import Image from "next/image";
-import {
-  useEffect,
-  useRef,
-  useState,
-  type KeyboardEvent,
-  type MouseEvent,
-} from "react";
-import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft01Icon,
   ArrowRight01Icon,
+  ArrowUpRight01Icon,
+  Cancel01Icon,
   Github01Icon,
   Globe02Icon,
+  SourceCodeIcon,
 } from "@hugeicons/core-free-icons";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { PeriodLabel } from "@/components/period-label";
+import { useProjectFilter } from "@/components/project-filter";
+import { UiIcon } from "@/components/ui-icon";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toPeriod } from "@/lib/period";
 import type { ProjectImage } from "@/lib/project-data";
-import { cn } from "@/lib/utils";
+import { techKey } from "@/lib/tech";
+import { useInView, usePrefersReducedMotion } from "@/lib/use-media";
+import { cn, plural } from "@/lib/utils";
 
 export type ProjectView = {
   id: number;
@@ -41,51 +42,265 @@ export type ProjectView = {
   endDate: string | null;
 };
 
-function UiIcon({
-  icon,
-  className,
-}: {
-  icon: IconSvgElement;
-  className?: string;
-}) {
-  return (
-    <HugeiconsIcon
-      aria-hidden="true"
-      icon={icon}
-      className={cn("size-4 shrink-0", className)}
-    />
+type WideSlot = "plate" | "plate-reverse" | "half" | "third";
+type MediumSlot = "plate" | "cell";
+
+type TileSlot = {
+  lg: WideSlot;
+  md: MediumSlot;
+};
+
+const MAX_TILE_TECH = 3;
+const CHIP_GAP_PX = 6;
+const COLLAPSED_FILTER_COUNT = 6;
+const SLIDE_INTERVAL_MS = 4500;
+
+const TILE_CLASS: Record<WideSlot, string> = {
+  plate: "lg:col-span-12 lg:grid lg:grid-cols-subgrid lg:items-center lg:gap-x-6",
+  "plate-reverse": "lg:col-span-12 lg:grid lg:grid-cols-subgrid lg:items-center lg:gap-x-6",
+  half: "lg:col-span-6 lg:flex",
+  third: "lg:col-span-4 lg:flex",
+};
+
+const MEDIUM_TILE_CLASS: Record<MediumSlot, string> = {
+  plate: "md:col-span-2 md:grid md:grid-cols-subgrid md:items-center md:gap-x-6",
+  cell: "",
+};
+
+const MEDIUM_FRAME_CLASS: Record<MediumSlot, string> = {
+  plate: "md:col-start-1 md:row-start-1",
+  cell: "",
+};
+
+const MEDIUM_CAPTION_CLASS: Record<MediumSlot, string> = {
+  plate: "md:col-start-2 md:row-start-1",
+  cell: "",
+};
+
+const FRAME_CLASS: Record<WideSlot, string> = {
+  plate: "lg:col-span-7 lg:col-start-1 lg:row-start-1",
+  "plate-reverse": "lg:col-span-7 lg:col-start-6 lg:row-start-1",
+  half: "",
+  third: "",
+};
+
+const CAPTION_CLASS: Record<WideSlot, string> = {
+  plate: "lg:col-span-5 lg:col-start-8 lg:row-start-1",
+  "plate-reverse": "lg:col-span-5 lg:col-start-1 lg:row-start-1",
+  half: "",
+  third: "",
+};
+
+const IMAGE_SIZES: Record<WideSlot, string> = {
+  plate: "(min-width: 1024px) 52vw, 100vw",
+  "plate-reverse": "(min-width: 1024px) 52vw, 100vw",
+  half: "(min-width: 1024px) 40vw, (min-width: 768px) 50vw, 100vw",
+  third: "(min-width: 1024px) 26vw, (min-width: 768px) 50vw, 100vw",
+};
+
+function projectLayout(count: number): TileSlot[] {
+  if (count === 1) return [{ lg: "plate", md: "plate" }];
+  if (count === 2) {
+    return [
+      { lg: "half", md: "cell" },
+      { lg: "half", md: "cell" },
+    ];
+  }
+
+  const slots: TileSlot[] = [{ lg: "plate", md: "plate" }];
+  const rest = count - 1;
+  const wideRemainder = rest % 3;
+
+  for (let index = 0; index < rest; index += 1) {
+    const remaining = rest - index;
+    let lg: WideSlot = "third";
+
+    if (wideRemainder === 1 && remaining === 1) {
+      lg = "plate-reverse";
+    } else if (wideRemainder === 2 && remaining <= 2) {
+      lg = "half";
+    }
+
+    slots.push({ lg, md: rest % 2 === 1 && remaining === 1 ? "plate" : "cell" });
+  }
+
+  return slots;
+}
+
+function techTags(projects: ProjectView[]) {
+  const tags = new Map<string, { key: string; label: string; count: number }>();
+
+  for (const project of projects) {
+    for (const tech of new Set(project.techStack.map(techKey))) {
+      const label = project.techStack.find((item) => techKey(item) === tech) ?? tech;
+      const tag = tags.get(tech);
+      if (tag) {
+        tag.count += 1;
+      } else {
+        tags.set(tech, { key: tech, label, count: 1 });
+      }
+    }
+  }
+
+  return [...tags.values()].sort(
+    (left, right) => right.count - left.count || left.label.localeCompare(right.label),
   );
 }
 
-const MAX_VISIBLE_TECH = 3;
-
-const tileButtonClass = "size-8";
-
-function stopCardOpen(event: MouseEvent<HTMLAnchorElement>) {
+function stopTileOpen(event: React.MouseEvent<HTMLAnchorElement>) {
   event.stopPropagation();
 }
 
-function TechStackBadges({ techStack }: { techStack: string[] }) {
+const chipClass =
+  "chip transition-colors duration-150 outline-offset-2 focus-visible:outline-2";
+
+function FilterChip({
+  label,
+  count,
+  pressed,
+  onClick,
+}: {
+  label: string;
+  count: number;
+  pressed: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={pressed}
+      onClick={onClick}
+      className={cn(
+        chipClass,
+        pressed
+          ? "border-primary bg-primary text-primary-foreground"
+          : "border-input bg-card text-foreground hover:border-primary hover:text-primary",
+      )}
+    >
+      {label}
+      <span
+        className={cn(
+          "text-xs font-semibold tabular-nums",
+          pressed ? "text-primary-foreground/80" : "text-muted-foreground",
+        )}
+      >
+        {count}
+      </span>
+    </button>
+  );
+}
+
+function MoreChip({ hidden }: { hidden: string[] }) {
+  return (
+    <Badge variant="secondary" title={hidden.join(", ")}>
+      <span aria-hidden="true">+{hidden.length}</span>
+      <span className="sr-only">
+        and {plural(hidden.length, "more technology", "more technologies")}:{" "}
+        {hidden.join(", ")}
+      </span>
+    </Badge>
+  );
+}
+
+function TechChips({ techStack }: { techStack: string[] }) {
   if (techStack.length === 0) return null;
 
-  const visible = techStack.slice(0, MAX_VISIBLE_TECH);
-  const hidden = techStack.slice(MAX_VISIBLE_TECH);
+  return (
+    <ul aria-label="Technologies" className="flex min-w-0 flex-wrap items-center gap-1.5">
+      {techStack.map((tech) => (
+        <li key={tech} className="flex">
+          <Badge>{tech}</Badge>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function FittedTechChips({ techStack, limit }: { techStack: string[]; limit: number }) {
+  const rowRef = useRef<HTMLDivElement>(null);
+  const measureRef = useRef<HTMLUListElement>(null);
+  const candidates = techStack.slice(0, limit);
+  const [fit, setFit] = useState(candidates.length);
+
+  useLayoutEffect(() => {
+    const row = rowRef.current;
+    const measure = measureRef.current;
+    if (!row || !measure) return;
+
+    const compute = () => {
+      const items = Array.from(measure.children) as HTMLElement[];
+      const moreWidth = items[items.length - 1]?.offsetWidth ?? 0;
+      const available = row.clientWidth;
+      let used = 0;
+      let count = 0;
+
+      for (let index = 0; index < candidates.length; index += 1) {
+        const width = (items[index]?.offsetWidth ?? 0) + (index > 0 ? CHIP_GAP_PX : 0);
+        const remaining = techStack.length - (index + 1);
+        const reserve = remaining > 0 ? CHIP_GAP_PX + moreWidth : 0;
+        if (used + width + reserve > available) break;
+        used += width;
+        count = index + 1;
+      }
+
+      setFit(count);
+    };
+
+    compute();
+    document.fonts?.ready.then(compute);
+    const observer = new ResizeObserver(compute);
+    observer.observe(row);
+    return () => observer.disconnect();
+  }, [techStack, candidates.length]);
+
+  if (techStack.length === 0) return <span className="flex-1" />;
+
+  const shown = techStack.slice(0, fit);
+  const hidden = techStack.slice(fit);
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      {visible.map((tech) => (
-        <Badge key={tech}>{tech}</Badge>
-      ))}
-      {hidden.length > 0 && (
-        <Badge variant="secondary" title={hidden.join(", ")}>
-          +{hidden.length}
-        </Badge>
-      )}
+    <div ref={rowRef} className="relative h-5 min-w-0 flex-1 overflow-hidden">
+      <ul aria-label="Technologies" className="flex h-5 items-center gap-1.5">
+        {shown.map((tech) => (
+          <li key={tech} className="flex shrink-0">
+            <Badge>{tech}</Badge>
+          </li>
+        ))}
+        {hidden.length > 0 && (
+          <li className="flex shrink-0">
+            <MoreChip hidden={hidden} />
+          </li>
+        )}
+      </ul>
+      <ul
+        ref={measureRef}
+        aria-hidden="true"
+        className="pointer-events-none invisible absolute top-0 left-0 flex w-max gap-1.5"
+      >
+        {candidates.map((tech) => (
+          <li key={tech} className="flex shrink-0">
+            <Badge>{tech}</Badge>
+          </li>
+        ))}
+        <li className="flex shrink-0">
+          <Badge variant="secondary">+{techStack.length}</Badge>
+        </li>
+      </ul>
     </div>
   );
 }
 
-function ProjectTileActions({
+function sourceIcon(url: string) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "") === "github.com"
+      ? Github01Icon
+      : SourceCodeIcon;
+  } catch {
+    return SourceCodeIcon;
+  }
+}
+
+function TileLinks({
   projectUrl,
   sourceUrl,
 }: {
@@ -95,35 +310,37 @@ function ProjectTileActions({
   if (!projectUrl && !sourceUrl) return null;
 
   return (
-    <div className="flex shrink-0 items-center gap-1.5">
+    <div className="relative z-10 -mr-1.5 flex shrink-0 items-center">
       {projectUrl && (
-        <Button asChild size="icon-only" className={tileButtonClass}>
-          <a
-            href={projectUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={stopCardOpen}
-          >
-            <UiIcon icon={Globe02Icon} />
-            <span className="sr-only">Live</span>
-          </a>
-        </Button>
-      )}
-      {sourceUrl && (
         <Button
           asChild
-          variant="secondary"
+          variant="ghost"
           size="icon-only"
-          className={tileButtonClass}
+          className="size-8 text-primary hover:text-primary"
         >
+          <a
+            href={projectUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={stopTileOpen}
+            aria-label="Live site (opens in a new tab)"
+            title="Live site"
+          >
+            <UiIcon icon={Globe02Icon} />
+          </a>
+        </Button>
+      )}
+      {sourceUrl && (
+        <Button asChild variant="ghost" size="icon-only" className="size-8">
           <a
             href={sourceUrl}
             target="_blank"
             rel="noopener noreferrer"
-            onClick={stopCardOpen}
+            onClick={stopTileOpen}
+            aria-label="Source code (opens in a new tab)"
+            title="Source code"
           >
-            <UiIcon icon={Github01Icon} />
-            <span className="sr-only">Source code</span>
+            <UiIcon icon={sourceIcon(sourceUrl)} />
           </a>
         </Button>
       )}
@@ -131,7 +348,7 @@ function ProjectTileActions({
   );
 }
 
-function ProjectActions({
+function DialogLinks({
   projectUrl,
   sourceUrl,
 }: {
@@ -141,30 +358,28 @@ function ProjectActions({
   if (!projectUrl && !sourceUrl) return null;
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex shrink-0 flex-wrap items-center gap-2">
       {projectUrl && (
-        <Button asChild size="icon-text">
-          <a
-            href={projectUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={stopCardOpen}
-          >
+        <Button
+          asChild
+          variant="ghost"
+          size="icon-text"
+          className="text-primary hover:text-primary"
+        >
+          <a href={projectUrl} target="_blank" rel="noopener noreferrer">
             <UiIcon icon={Globe02Icon} />
-            Live
+            Live site
+            <UiIcon icon={ArrowUpRight01Icon} />
+            <span className="sr-only">(opens in a new tab)</span>
           </a>
         </Button>
       )}
       {sourceUrl && (
-        <Button asChild variant="secondary" size="icon-text">
-          <a
-            href={sourceUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={stopCardOpen}
-          >
-            <UiIcon icon={Github01Icon} />
+        <Button asChild variant="ghost" size="icon-text">
+          <a href={sourceUrl} target="_blank" rel="noopener noreferrer">
+            <UiIcon icon={sourceIcon(sourceUrl)} />
             Source code
+            <span className="sr-only">(opens in a new tab)</span>
           </a>
         </Button>
       )}
@@ -172,42 +387,7 @@ function ProjectActions({
   );
 }
 
-function ProjectImageFrame({
-  title,
-  images,
-  activeIndex,
-  sizes,
-  fit = "cover",
-  priority = false,
-}: {
-  title: string;
-  images: ProjectImage[];
-  activeIndex: number;
-  sizes: string;
-  fit?: "cover" | "contain";
-  priority?: boolean;
-}) {
-  const image = images[activeIndex] ?? images[0];
-
-  if (!image) return null;
-
-  return (
-    <Image
-      key={image.url}
-      src={image.url}
-      alt={image.title || title}
-      fill
-      priority={priority}
-      sizes={sizes}
-      className={cn(
-        "rounded-lg",
-        fit === "contain" ? "object-contain" : "object-cover",
-      )}
-    />
-  );
-}
-
-function ProjectImageLightbox({
+function ProjectLightbox({
   open,
   onOpenChange,
   image,
@@ -224,278 +404,418 @@ function ProjectImageLightbox({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[calc(100%-var(--spacing)*4)] max-w-none bg-transparent p-2 ring-0 sm:max-w-[min(96vw,90rem)]">
+      <DialogContent
+        showCloseButton={false}
+        className="w-[calc(100%-var(--spacing)*4)] max-w-none bg-transparent p-2 ring-0 sm:max-w-[min(96vw,90rem)]"
+      >
         <DialogTitle className="sr-only">{label}</DialogTitle>
-        <DialogDescription className="sr-only">
-          Expanded view of {label}
-        </DialogDescription>
+        <DialogDescription className="sr-only">Expanded view of {label}</DialogDescription>
         <div className="relative h-[calc(100dvh-var(--spacing)*16)] w-full">
-          <Image
-            src={image.url}
-            alt={label}
-            fill
-            sizes="96vw"
-            className="object-contain"
-          />
+          <Image src={image.url} alt={label} fill sizes="96vw" className="object-contain" />
         </div>
+        <DialogClose asChild>
+          <Button
+            variant="secondary"
+            size="icon-only"
+            className="absolute top-3 right-3 shadow-md"
+            aria-label="Close expanded image"
+          >
+            <UiIcon icon={Cancel01Icon} />
+          </Button>
+        </DialogClose>
       </DialogContent>
     </Dialog>
   );
 }
 
-function ProjectCard({ project }: { project: ProjectView }) {
-  const [open, setOpen] = useState(false);
+function ProjectDialog({
+  project,
+  open,
+  onOpenChange,
+  imageIndex,
+  onImageIndexChange,
+}: {
+  project: ProjectView;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  imageIndex: number;
+  onImageIndexChange: (index: number) => void;
+}) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
-  const [cardImageIndex, setCardImageIndex] = useState(0);
-  const [dialogImageIndex, setDialogImageIndex] = useState(0);
   const thumbnailRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const images = project.images;
-  const activeImage = images[dialogImageIndex];
+  const activeImage = images[imageIndex] ?? images[0];
   const period = toPeriod(project.startDate, project.endDate);
-  const previewDescription = project.description.trim().split(/\r?\n/)[0];
-
-  useEffect(() => {
-    if (images.length < 2 || open) return;
-
-    const timer = window.setInterval(() => {
-      if (document.visibilityState !== "visible") return;
-
-      setCardImageIndex((index) => (index + 1) % images.length);
-    }, 4500);
-
-    return () => window.clearInterval(timer);
-  }, [images.length, open]);
 
   useEffect(() => {
     if (!open || images.length < 2) return;
 
-    thumbnailRefs.current[dialogImageIndex]?.scrollIntoView({
-      behavior: "smooth",
+    thumbnailRefs.current[imageIndex]?.scrollIntoView({
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
       block: "nearest",
       inline: "center",
     });
-  }, [dialogImageIndex, open, images.length]);
+  }, [imageIndex, open, images.length]);
 
-  function openProject() {
-    setDialogImageIndex(cardImageIndex);
-    setOpen(true);
-  }
-
-  function handleKeyDown(event: KeyboardEvent<HTMLElement>) {
-    if (event.target !== event.currentTarget) return;
-    if (event.key !== "Enter" && event.key !== " ") return;
-
-    event.preventDefault();
-    openProject();
-  }
+  const step = (direction: 1 | -1) =>
+    onImageIndexChange((imageIndex + direction + images.length) % images.length);
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <article
-        role="button"
-        tabIndex={0}
-        aria-label={`Open ${project.title}`}
-        onClick={openProject}
-        onKeyDown={handleKeyDown}
-        className="glass-orb portfolio-item group relative flex aspect-video cursor-pointer flex-col justify-between overflow-hidden rounded-lg p-3 outline-none focus-visible:outline-2 focus-visible:outline-ring sm:p-4"
-      >
-        <div className="absolute inset-0 overflow-hidden rounded-lg">
-          <ProjectImageFrame
-            title={project.title}
-            images={images}
-            activeIndex={cardImageIndex}
-            sizes="(min-width: 1280px) 30vw, (min-width: 768px) 45vw, 100vw"
-          />
-        </div>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="native-scrollbar flex max-h-[calc(100dvh-var(--spacing)*6)] flex-col overflow-y-auto p-4 sm:max-w-6xl sm:p-6 lg:h-[calc(100dvh-var(--spacing)*8)] lg:overflow-hidden">
+          <div className="grid gap-6 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+            <div className="flex min-w-0 flex-col gap-3 lg:min-h-0">
+              <div className="relative aspect-video w-full shrink-0 overflow-hidden rounded-md border bg-tint">
+                {activeImage && (
+                  <button
+                    type="button"
+                    onClick={() => setLightboxOpen(true)}
+                    className="relative size-full cursor-zoom-in outline-offset-[-3px] focus-visible:outline-2"
+                  >
+                    <Image
+                      key={activeImage.url}
+                      src={activeImage.url}
+                      alt={activeImage.title || project.title}
+                      fill
+                      priority
+                      sizes="(min-width: 1024px) 40rem, 92vw"
+                      className="object-contain"
+                    />
+                    <span className="sr-only">Expand image</span>
+                  </button>
+                )}
 
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute bottom-0 inset-x-0 h-3/4 bg-gradient-to-t from-neutral-950 via-neutral-950/90 via-50% to-transparent transition-opacity duration-300 group-hover:opacity-0 group-focus-visible:opacity-0 sm:h-[52%]"
-        />
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute bottom-0 inset-x-0 h-3/4 opacity-0 bg-gradient-to-t from-primary via-primary/90 via-50% to-transparent transition-opacity duration-300 group-hover:opacity-100 group-focus-visible:opacity-100 sm:h-[52%]"
-        />
-
-        <div className="relative flex items-start justify-between gap-3">
-          <TechStackBadges techStack={project.techStack} />
-          <ProjectTileActions
-            projectUrl={project.projectUrl}
-            sourceUrl={project.sourceUrl}
-          />
-        </div>
-
-        <div className="relative flex flex-col gap-1">
-          <h3 className="text-lg leading-tight font-semibold text-balance sm:text-xl text-white">
-            {project.title}
-          </h3>
-          <PeriodLabel period={period} className="text-white/60" />
-          <p className="line-clamp-2 text-sm leading-6 text-white/80">
-            {previewDescription}
-          </p>
-        </div>
-      </article>
-
-      <DialogContent className="flex h-[calc(100dvh-var(--spacing)*6)] flex-col overflow-hidden p-4 sm:max-w-5xl sm:p-5">
-        <div className="grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)] gap-5 overflow-hidden lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:grid-rows-1">
-          <div className="flex min-w-0 flex-col gap-3 lg:min-h-0">
-            <div className="relative aspect-video w-full shrink-0 p-1 sm:p-1.5">
-              <button
-                type="button"
-                onClick={() => setLightboxOpen(true)}
-                className="glass-orb relative h-full w-full cursor-zoom-in overflow-hidden rounded-lg outline-none focus-visible:outline-2 focus-visible:outline-ring"
-              >
-                <ProjectImageFrame
-                  title={project.title}
-                  images={images}
-                  activeIndex={dialogImageIndex}
-                  sizes="96vw"
-                  fit="contain"
-                  priority
-                />
-                <span className="sr-only">Expand image</span>
-              </button>
+                {images.length > 1 && (
+                  <>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="icon-only"
+                      className="absolute top-1/2 left-3 z-10 -translate-y-1/2 shadow-md"
+                      onClick={() => step(-1)}
+                      aria-label="Previous image"
+                    >
+                      <UiIcon icon={ArrowLeft01Icon} />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="icon-only"
+                      className="absolute top-1/2 right-3 z-10 -translate-y-1/2 shadow-md"
+                      onClick={() => step(1)}
+                      aria-label="Next image"
+                    >
+                      <UiIcon icon={ArrowRight01Icon} />
+                    </Button>
+                  </>
+                )}
+              </div>
 
               {images.length > 1 && (
-                <>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="icon-only"
-                    className="absolute left-3 top-1/2 -translate-y-1/2 z-10 size-8.5 rounded-full border border-border/40 bg-background/80 text-foreground backdrop-blur-md shadow-md hover:bg-background sm:size-9"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setDialogImageIndex(
-                        (prev) => (prev - 1 + images.length) % images.length,
-                      );
-                    }}
-                    aria-label="Previous image"
-                  >
-                    <UiIcon icon={ArrowLeft01Icon} />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="icon-only"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 z-10 size-8.5 rounded-full border border-border/40 bg-background/80 text-foreground backdrop-blur-md shadow-md hover:bg-background sm:size-9"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setDialogImageIndex(
-                        (prev) => (prev + 1) % images.length,
-                      );
-                    }}
-                    aria-label="Next image"
-                  >
-                    <UiIcon icon={ArrowRight01Icon} />
-                  </Button>
-                </>
+                <div className="native-scrollbar -mx-1 min-w-0 shrink-0 overflow-x-auto overflow-y-hidden overscroll-x-contain px-1">
+                  <ul className="flex w-max gap-2.5 p-1.5 pb-3" aria-label="Project images">
+                    {images.map((image, index) => (
+                      <li key={`${image.url}-${index}`}>
+                        <button
+                          type="button"
+                          ref={(element) => {
+                            thumbnailRefs.current[index] = element;
+                          }}
+                          aria-current={index === imageIndex ? "true" : undefined}
+                          onClick={() => onImageIndexChange(index)}
+                          className={cn(
+                            "relative block size-14 overflow-hidden rounded-sm border bg-tint outline-offset-2 transition-opacity duration-150 focus-visible:outline-2",
+                            index === imageIndex
+                              ? "border-primary ring-2 ring-primary"
+                              : "opacity-70 hover:opacity-100",
+                          )}
+                        >
+                          <Image src={image.url} alt="" fill sizes="3.5rem" className="object-cover" />
+                          <span className="sr-only">
+                            {image.title || `Image ${index + 1} of ${images.length}`}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {activeImage && (activeImage.title || activeImage.description) && (
+                <div className="flex min-h-0 flex-col gap-1.5 lg:flex-1">
+                  {activeImage.title && (
+                    <h3 className="shrink-0 text-base leading-snug font-semibold text-balance">
+                      {activeImage.title}
+                    </h3>
+                  )}
+                  {activeImage.description && (
+                    <div className="native-scrollbar min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain">
+                      <p className="max-w-[68ch] pr-3 text-justify text-sm leading-6 whitespace-pre-line text-muted-foreground hyphens-auto">
+                        {activeImage.description}
+                      </p>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
 
-            {images.length > 1 && (
-              <div className="native-scrollbar -mx-1 min-w-0 shrink-0 overflow-x-auto overflow-y-hidden overscroll-x-contain px-1">
-                <div className="flex w-max gap-2.5 p-2 pb-3">
-                  {images.map((image, index) => (
-                    <Button
-                      key={`${image.url}-thumb-${index}`}
-                      ref={(el) => {
-                        thumbnailRefs.current[index] = el;
-                      }}
-                      type="button"
-                      variant={
-                        index === dialogImageIndex ? "default" : "secondary"
-                      }
-                      size="icon-only"
-                      className={cn(
-                        "relative aspect-square size-14 shrink-0 overflow-hidden rounded-lg p-0 transition-all duration-200",
-                        index === dialogImageIndex
-                          ? "glass-orb z-10 scale-[1.03]"
-                          : "opacity-75 hover:opacity-100",
-                      )}
-                      onClick={() => setDialogImageIndex(index)}
-                    >
-                      <Image
-                        src={image.url}
-                        alt=""
-                        fill
-                        sizes="calc(var(--spacing) * 14)"
-                        className="object-cover"
-                      />
-                      <span className="sr-only">
-                        {image.title || `Image ${index + 1}`}
-                      </span>
-                    </Button>
-                  ))}
-                </div>
+            <div className="flex min-h-0 flex-col gap-5">
+              <DialogHeader className="shrink-0 gap-3 pr-8">
+                <DialogTitle className="type-wide text-feature font-bold text-balance text-foreground uppercase">
+                  {project.title}
+                </DialogTitle>
+                <PeriodLabel period={period} />
+                <DialogDescription className="sr-only">
+                  Details, images and links for {project.title}
+                </DialogDescription>
+                <TechChips techStack={project.techStack} />
+              </DialogHeader>
+
+              <div className="native-scrollbar min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain">
+                <p className="max-w-[68ch] pr-3 text-justify text-sm leading-6 whitespace-pre-line text-foreground/90 hyphens-auto sm:text-base sm:leading-7">
+                  {project.description}
+                </p>
               </div>
-            )}
 
-            {activeImage && (activeImage.title || activeImage.description) && (
-              <div className="hidden min-h-0 flex-col gap-1 lg:flex lg:flex-1">
-                {activeImage.title && (
-                  <h3 className="shrink-0 font-heading text-base leading-snug font-medium text-balance">
-                    {activeImage.title}
-                  </h3>
-                )}
-                {activeImage.description && (
-                  <div className="native-scrollbar max-h-40 min-h-0 overflow-y-auto overscroll-contain lg:max-h-none lg:flex-1">
-                    <p className="pr-3 text-sm leading-6 text-justify whitespace-pre-line text-muted-foreground">
-                      {activeImage.description}
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="flex min-h-0 flex-col gap-4">
-            <DialogHeader className="shrink-0 gap-3">
-              <DialogTitle className="text-2xl leading-tight font-semibold text-balance text-foreground md:text-3xl">
-                {project.title}
-              </DialogTitle>
-              <DialogDescription className="sr-only">
-                {project.title}
-              </DialogDescription>
-              <PeriodLabel period={period} className="text-muted-foreground/75" />
-              {project.techStack.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {project.techStack.map((tech) => (
-                    <Badge key={tech}>{tech}</Badge>
-                  ))}
-                </div>
-              )}
-            </DialogHeader>
-
-            <div className="native-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain">
-              <p className="pr-3 text-base leading-7 text-justify whitespace-pre-line text-foreground/85">
-                {project.description}
-              </p>
+              <DialogLinks projectUrl={project.projectUrl} sourceUrl={project.sourceUrl} />
             </div>
-
-            <ProjectActions
-              projectUrl={project.projectUrl}
-              sourceUrl={project.sourceUrl}
-            />
           </div>
-        </div>
-      </DialogContent>
+        </DialogContent>
+      </Dialog>
 
-      <ProjectImageLightbox
+      <ProjectLightbox
         open={lightboxOpen}
         onOpenChange={setLightboxOpen}
         image={activeImage}
         fallbackTitle={project.title}
       />
-    </Dialog>
+    </>
+  );
+}
+
+function ProjectTile({ project, slot }: { project: ProjectView; slot: TileSlot }) {
+  const tileRef = useRef<HTMLLIElement>(null);
+  const [open, setOpen] = useState(false);
+  const [imageIndex, setImageIndex] = useState(0);
+  const [dialogImageIndex, setDialogImageIndex] = useState(0);
+  const [hasCycled, setHasCycled] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const inView = useInView(tileRef);
+  const reducedMotion = usePrefersReducedMotion();
+  const images = project.images;
+  const image = images[imageIndex] ?? images[0];
+  const period = toPeriod(project.startDate, project.endDate);
+  const previewDescription = project.description.trim().split(/\r?\n/)[0];
+  const widePlate = slot.lg === "plate" || slot.lg === "plate-reverse";
+  const mediumPlate = slot.md === "plate";
+  const playing =
+    images.length > 1 && inView && !open && !hovered && !focused && !reducedMotion;
+
+  useEffect(() => {
+    if (!playing) return;
+
+    const timer = window.setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      setHasCycled(true);
+      setImageIndex((index) => (index + 1) % images.length);
+    }, SLIDE_INTERVAL_MS);
+
+    return () => window.clearInterval(timer);
+  }, [playing, images.length]);
+
+  function openProject() {
+    setDialogImageIndex(imageIndex);
+    setOpen(true);
+  }
+
+  return (
+    <li
+      ref={tileRef}
+      style={{ viewTransitionName: `project-${project.id}` }}
+      onPointerEnter={() => setHovered(true)}
+      onPointerLeave={() => setHovered(false)}
+      onFocus={() => setFocused(true)}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+          setFocused(false);
+        }
+      }}
+      className={cn(
+        "group/tile relative flex flex-col gap-3 rounded-sm outline-offset-8 has-[[data-tile-open]:focus-visible]:outline-2 has-[[data-tile-open]:focus-visible]:outline-ring",
+        MEDIUM_TILE_CLASS[slot.md],
+        TILE_CLASS[slot.lg],
+      )}
+    >
+      <div
+        className={cn(
+          "order-2 flex min-w-0 flex-1 flex-col gap-2",
+          MEDIUM_CAPTION_CLASS[slot.md],
+          CAPTION_CLASS[slot.lg],
+        )}
+      >
+        <h3
+          className={cn(
+            "text-lg leading-snug font-semibold text-balance",
+            mediumPlate && "md:text-xl",
+            widePlate
+              ? "lg:type-wide lg:text-feature lg:leading-(--text-feature--line-height) lg:font-bold lg:uppercase"
+              : "lg:text-lg",
+          )}
+        >
+          <button
+            type="button"
+            data-tile-open
+            onClick={openProject}
+            className="text-left outline-none group-hover/tile:text-primary after:absolute after:inset-0 after:z-1 after:content-['']"
+          >
+            {project.title}
+          </button>
+        </h3>
+        <PeriodLabel period={period} />
+        {previewDescription && (
+          <p
+            className={cn(
+              "max-w-[60ch] text-justify text-sm leading-6 text-muted-foreground hyphens-auto line-clamp-2",
+              mediumPlate && "md:line-clamp-3",
+              widePlate ? "lg:line-clamp-4 lg:text-base lg:leading-7" : "lg:line-clamp-2",
+            )}
+          >
+            {previewDescription}
+          </p>
+        )}
+      </div>
+
+      <div
+        className={cn(
+          "order-1 flex flex-col overflow-hidden rounded-sm border bg-card transition-colors duration-200 group-hover/tile:border-primary",
+          MEDIUM_FRAME_CLASS[slot.md],
+          FRAME_CLASS[slot.lg],
+        )}
+      >
+        <div className="relative aspect-video overflow-hidden bg-tint">
+          {image && (
+            <Image
+              key={image.url}
+              src={image.url}
+              alt=""
+              fill
+              sizes={IMAGE_SIZES[slot.lg]}
+              className={cn(
+                "object-cover transition-transform duration-700 ease-out group-hover/tile:scale-[1.02] motion-reduce:transition-none",
+                hasCycled && "tile-image-in",
+              )}
+            />
+          )}
+          {images.length > 1 && (
+            <span
+              aria-hidden="true"
+              className="chart-label absolute bottom-2.5 left-2.5 rounded-sm bg-background/90 px-2 py-1 text-foreground"
+            >
+              {imageIndex + 1}/{images.length}
+            </span>
+          )}
+        </div>
+
+        {(project.techStack.length > 0 || project.projectUrl || project.sourceUrl) && (
+          <div className="flex min-h-11 items-center gap-3 border-t px-3 py-1.5">
+            <FittedTechChips techStack={project.techStack} limit={MAX_TILE_TECH} />
+            <TileLinks projectUrl={project.projectUrl} sourceUrl={project.sourceUrl} />
+          </div>
+        )}
+      </div>
+
+      <ProjectDialog
+        project={project}
+        open={open}
+        onOpenChange={setOpen}
+        imageIndex={dialogImageIndex}
+        onImageIndexChange={setDialogImageIndex}
+      />
+    </li>
   );
 }
 
 export function ProjectShowcase({ projects }: { projects: ProjectView[] }) {
+  const { techs, toggleTech, clearTechs } = useProjectFilter();
+  const [expanded, setExpanded] = useState(false);
+  const tags = useMemo(() => techTags(projects), [projects]);
+  const visible =
+    techs.length > 0
+      ? projects.filter((project) =>
+          project.techStack.some((item) => techs.includes(techKey(item))),
+        )
+      : projects;
+  const slots = projectLayout(visible.length);
+  const activeTags = tags.filter((tag) => techs.includes(tag.key));
+  const collapsible = tags.length > COLLAPSED_FILTER_COUNT + 1;
+  const leadingTags = collapsible && !expanded ? tags.slice(0, COLLAPSED_FILTER_COUNT) : tags;
+  const shownTags = [
+    ...leadingTags,
+    ...activeTags.filter((tag) => !leadingTags.includes(tag)),
+  ];
+  const hiddenCount = tags.length - shownTags.length;
+  const activeLabels = new Intl.ListFormat("en", { type: "disjunction" }).format(
+    activeTags.map((tag) => tag.label),
+  );
+
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:gap-5 xl:grid-cols-3">
-      {projects.map((project) => (
-        <ProjectCard key={project.id} project={project} />
-      ))}
+    <div className="flex flex-col gap-6 lg:gap-8">
+      {tags.length > 1 && (
+        <div
+          id="project-filters"
+          role="group"
+          aria-label="Filter projects by technology"
+          className="flex flex-wrap gap-1.5"
+        >
+          <FilterChip
+            label="All"
+            count={projects.length}
+            pressed={techs.length === 0}
+            onClick={clearTechs}
+          />
+          {shownTags.map((tag) => (
+            <FilterChip
+              key={tag.key}
+              label={tag.label}
+              count={tag.count}
+              pressed={techs.includes(tag.key)}
+              onClick={() => toggleTech(tag.key)}
+            />
+          ))}
+          {collapsible && (
+            <button
+              type="button"
+              aria-expanded={expanded}
+              aria-controls="project-filters"
+              onClick={() => setExpanded((value) => !value)}
+              className={cn(
+                chipClass,
+                "border-dashed border-input bg-transparent text-muted-foreground hover:border-primary hover:text-primary",
+              )}
+            >
+              {expanded ? "Show fewer" : `+${hiddenCount} more`}
+            </button>
+          )}
+        </div>
+      )}
+
+      <p className="sr-only" aria-live="polite">
+        {activeTags.length > 0
+          ? `Showing ${plural(visible.length, "project")} using ${activeLabels}`
+          : ""}
+      </p>
+
+      <ul className="grid gap-x-6 gap-y-8 md:grid-cols-2 lg:grid-cols-12 lg:gap-y-10">
+        {visible.map((project, index) => (
+          <ProjectTile
+            key={project.id}
+            project={project}
+            slot={slots[index] ?? { lg: "third", md: "cell" }}
+          />
+        ))}
+      </ul>
     </div>
   );
 }

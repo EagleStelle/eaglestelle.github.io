@@ -18,9 +18,7 @@ export function Field({
   return (
     <ShadcnField>
       <FieldLabel asChild>
-        <span className="font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase">
-        {label}
-        </span>
+        <span className="chart-label text-muted-foreground">{label}</span>
       </FieldLabel>
       {children}
     </ShadcnField>

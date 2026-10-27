@@ -1,14 +1,17 @@
 import { ImageResponse } from "next/og";
 import sharp from "sharp";
-import { prisma } from "@/lib/prisma";
-import { SITE_ALIASES, SITE_NAME, SITE_TITLE } from "@/lib/site";
+import { aliasIdentities, displayName, formatIdentity, getProfile } from "@/lib/profile";
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
-export const alt = SITE_TITLE;
+export const alt = "Portfolio preview";
 export const revalidate = 3600;
 
 const AVATAR_SIZE = 320;
+const NIGHT = "#12100d";
+const INK = "#ebe8e1";
+const MUTED = "#a8a49b";
+const BRASS = "#ebbc63";
 
 async function loadAvatar(url: string | null | undefined) {
   if (!url) return undefined;
@@ -30,10 +33,11 @@ async function loadAvatar(url: string | null | undefined) {
 }
 
 export default async function OpengraphImage() {
-  const profile = await prisma.profile.findUnique({ where: { id: 1 } });
+  const profile = await getProfile();
 
-  const name = profile?.name?.trim() || SITE_NAME;
+  const name = displayName(profile);
   const headline = profile?.headline?.trim() ?? "";
+  const aliases = aliasIdentities(profile?.aliases ?? []).map(formatIdentity);
   const avatarUrl = await loadAvatar(profile?.avatarUrl);
 
   return new ImageResponse(
@@ -45,8 +49,10 @@ export default async function OpengraphImage() {
           display: "flex",
           alignItems: "center",
           gap: "64px",
-          background: "#0a0a0a",
-          color: "#fafafa",
+          background: NIGHT,
+          backgroundImage: `linear-gradient(rgba(235,232,225,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(235,232,225,0.06) 1px, transparent 1px)`,
+          backgroundSize: "120px 120px",
+          color: INK,
           padding: "80px",
           position: "relative",
         }}
@@ -58,7 +64,7 @@ export default async function OpengraphImage() {
             left: 0,
             width: "100%",
             height: "12px",
-            background: "#c70036",
+            background: BRASS,
           }}
         />
 
@@ -72,7 +78,7 @@ export default async function OpengraphImage() {
               height: AVATAR_SIZE,
               borderRadius: "50%",
               objectFit: "cover",
-              border: "6px solid #c70036",
+              border: `6px solid ${BRASS}`,
               flexShrink: 0,
             }}
           />
@@ -83,8 +89,9 @@ export default async function OpengraphImage() {
             style={{
               fontSize: avatarUrl ? 68 : 88,
               fontWeight: 700,
-              letterSpacing: "-0.03em",
+              letterSpacing: "-0.02em",
               lineHeight: 1.05,
+              textTransform: "uppercase",
             }}
           >
             {name}
@@ -94,7 +101,7 @@ export default async function OpengraphImage() {
             <div
               style={{
                 fontSize: avatarUrl ? 32 : 40,
-                color: "#c70036",
+                color: BRASS,
                 marginTop: 20,
                 lineHeight: 1.25,
               }}
@@ -103,15 +110,19 @@ export default async function OpengraphImage() {
             </div>
           )}
 
-          <div
-            style={{
-              fontSize: 24,
-              color: "#a1a1a1",
-              marginTop: 32,
-            }}
-          >
-            {`Also known as ${SITE_ALIASES.join(" · ")}`}
-          </div>
+          {aliases.length > 0 && (
+            <div
+              style={{
+                fontSize: 24,
+                color: MUTED,
+                marginTop: 32,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+              }}
+            >
+              {aliases.join(" · ")}
+            </div>
+          )}
         </div>
       </div>
     ),

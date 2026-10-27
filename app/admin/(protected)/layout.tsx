@@ -7,7 +7,6 @@ import { NavLinks } from "@/components/nav-links";
 import { PageFrame } from "@/components/page-frame";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
-import { Toaster } from "@/components/ui/sonner";
 import { requireAdmin } from "@/lib/auth";
 import { logout } from "@/app/admin/actions";
 
@@ -80,11 +79,13 @@ export default async function ProtectedAdminLayout({
         </PageFrame>
       </header>
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
+      <main
+        id="main"
+        tabIndex={-1}
+        className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6 lg:px-8"
+      >
         {children}
       </main>
-
-      <Toaster position="bottom-right" />
     </div>
   );
 }

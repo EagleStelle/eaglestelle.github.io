@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
-import type { ComponentPropsWithoutRef, ReactNode } from "react";
-import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
+import type { CSSProperties, ReactNode } from "react";
+import type { IconSvgElement } from "@hugeicons/react";
 import {
   ArrowUpRight01Icon,
   File01Icon,
@@ -10,94 +9,72 @@ import {
   Linkedin01Icon,
   Mail01Icon,
 } from "@hugeicons/core-free-icons";
-import { MobileNav } from "@/components/mobile-nav";
-import { LavaLamp } from "@/components/lava-lamp";
-import { NavLinks, type NavItem } from "@/components/nav-links";
-import { PageFrame } from "@/components/page-frame";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { BrandMark } from "@/components/brand-mark";
+import { CareerTrack } from "@/components/career-track";
+import { CertificationShowcase, type CertificationView } from "@/components/certification-showcase";
+import { CompassRose } from "@/components/compass-rose";
 import { ContactForm } from "@/components/contact-form";
 import { FooterEmail } from "@/components/footer-email";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { MobileNav } from "@/components/mobile-nav";
+import { frameInset } from "@/components/page-frame";
+import { ProjectFilterProvider } from "@/components/project-filter";
 import { ProjectShowcase, type ProjectView } from "@/components/project-showcase";
-import { CertificationShowcase, type CertificationView } from "@/components/certification-showcase";
+import { RouteProgressBar, RouteProvider, RouteRail, RouteStatus, type Waypoint } from "@/components/route";
+import { SkillsBoard, type SkillGroup } from "@/components/skills-board";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Timeline, type TimelineEntry } from "@/components/timeline";
-import { parseProjectImageList, parseProjectList } from "@/lib/project-data";
-import { cn } from "@/lib/utils";
+import { UiIcon } from "@/components/ui-icon";
+import { WaypointGlyph } from "@/components/waypoint-glyph";
+import { Button } from "@/components/ui/button";
+import { buildCareerTrack, type CareerItem } from "@/lib/career";
 import { prisma } from "@/lib/prisma";
-import { SITE_ALIASES, SITE_NAME, SITE_URL } from "@/lib/site";
+import {
+  aliasIdentities,
+  displayName,
+  displayTitle,
+  formatIdentity,
+  getProfile,
+} from "@/lib/profile";
+import { parseProjectImageList, parseProjectList } from "@/lib/project-data";
+import { SITE_URL } from "@/lib/site";
+import { techKey } from "@/lib/tech";
+import { cn, plural } from "@/lib/utils";
 
 export const revalidate = 3600;
 
+const aliasFormat = new Intl.ListFormat("en", { type: "disjunction" });
+
 export async function generateMetadata(): Promise<Metadata> {
-  const profile = await prisma.profile.findUnique({ where: { id: 1 } });
-
-  const name = profile?.name?.trim() || SITE_NAME;
-  const title = `${name} (${SITE_ALIASES[0]})`;
-  const aliasLine = `${name} (${SITE_ALIASES.join(" / ")})`;
-  const summary = profile?.summary?.trim().replace(/\s+/g, " ");
-  const headline = profile?.headline?.trim();
-
-  const description = [aliasLine, headline, summary]
+  const profile = await getProfile();
+  const title = displayTitle(profile);
+  const names = profile ? [profile.name, ...profile.aliases] : [];
+  const summary = profile?.summary.trim().replace(/\s+/g, " ");
+  const aliases = aliasFormat.format(profile?.aliases ?? []);
+  const tagline = [profile?.headline.trim(), aliases && `also known as ${aliases}`]
     .filter(Boolean)
-    .join(" — ")
+    .join(", ");
+  const description = [[profile?.name.trim(), tagline].filter(Boolean).join(" — "), summary]
+    .filter(Boolean)
+    .join(". ")
     .slice(0, 300);
 
   return {
     title: { absolute: title },
-    description,
-    keywords: [name, ...SITE_ALIASES],
+    description: description || undefined,
+    keywords: names.length > 0 ? names : undefined,
     alternates: { canonical: "/" },
     openGraph: {
       type: "profile",
       url: SITE_URL,
       title,
-      description,
+      description: description || undefined,
     },
     twitter: {
       card: "summary_large_image",
       title,
-      description,
+      description: description || undefined,
     },
   };
-}
-
-const sectionInset = "px-4 py-6 sm:px-8 sm:py-8 lg:px-12 lg:py-10 xl:px-16 xl:py-12";
-
-function PageSection({
-  className,
-  ...props
-}: ComponentPropsWithoutRef<"section">) {
-  return (
-    <section
-      className={cn("flex w-full flex-col gap-6 scroll-mt-16", sectionInset, className)}
-      {...props}
-    />
-  );
-}
-
-function SectionTitle({ children }: { children: ReactNode }) {
-  return (
-    <h2 className="text-2xl leading-tight font-semibold tracking-tight text-balance sm:text-3xl md:text-4xl">
-      {children}
-    </h2>
-  );
-}
-
-function UiIcon({
-  icon,
-  className,
-}: {
-  icon: IconSvgElement;
-  className?: string;
-}) {
-  return (
-    <HugeiconsIcon
-      aria-hidden="true"
-      icon={icon}
-      className={cn("size-4 shrink-0", className)}
-    />
-  );
 }
 
 type CategoryOrder = {
@@ -106,8 +83,8 @@ type CategoryOrder = {
 };
 
 function groupSkillsByCategory<
-  T extends { category: string | null; name: string; order: number },
->(items: T[], categories: CategoryOrder[]) {
+  T extends { id: number; category: string | null; name: string; order: number },
+>(items: T[], categories: CategoryOrder[]): SkillGroup[] {
   const categoryOrder = new Map(
     categories.map((category) => [category.name, category.order]),
   );
@@ -147,86 +124,105 @@ function groupSkillsByCategory<
         left[0].localeCompare(right[0])
       );
     })
-    .map(([category, group]) => [
+    .map(([category, group]) => ({
       category,
-      [...group.items].sort(
-        (left, right) =>
-          left.order - right.order || left.name.localeCompare(right.name),
-      ),
-    ] as const);
+      skills: [...group.items]
+        .sort((left, right) => left.order - right.order || left.name.localeCompare(right.name))
+        .map((skill) => ({ id: skill.id, name: skill.name })),
+    }));
+}
+
+function ChartHeading({
+  id,
+  title,
+  meta,
+  className,
+}: {
+  id: string;
+  title: string;
+  meta?: string;
+  className?: string;
+}) {
+  return (
+    <div className={cn("flex flex-wrap items-end justify-between gap-x-6 gap-y-2", className)}>
+      <h2
+        id={`${id}-title`}
+        className="type-wide flex items-center gap-2.5 text-section font-bold uppercase sm:gap-3"
+      >
+        <WaypointGlyph state="mark" className="size-5 sm:size-6" />
+        {title}
+      </h2>
+      {meta && <p className="chart-label text-muted-foreground lg:hidden">{meta}</p>}
+    </div>
+  );
+}
+
+function ChartSection({
+  id,
+  title,
+  meta,
+  children,
+}: {
+  id: string;
+  title?: string;
+  meta?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section
+      id={id}
+      aria-labelledby={`${id}-title`}
+      className="border-t border-border py-10 sm:py-12 lg:py-14"
+    >
+      {title && <ChartHeading id={id} title={title} meta={meta} className="mb-6 sm:mb-8" />}
+      {children}
+    </section>
+  );
 }
 
 export default async function Home() {
-  const [
-    profile,
-    skills,
-    skillCategories,
-    projects,
-    experience,
-    education,
-    certifications,
-  ] = await Promise.all([
-      prisma.profile.findUnique({ where: { id: 1 } }),
+  const [profile, skills, skillCategories, projects, experience, education, certifications] =
+    await Promise.all([
+      getProfile(),
       prisma.skill.findMany({ orderBy: [{ order: "asc" }, { name: "asc" }] }),
-      prisma.skillCategory.findMany({
-        orderBy: [{ order: "asc" }, { name: "asc" }],
-      }),
-      prisma.project.findMany({
-        orderBy: [{ order: "asc" }, { createdAt: "desc" }],
-      }),
-      prisma.experience.findMany({
-        orderBy: [{ order: "asc" }, { createdAt: "desc" }],
-      }),
-      prisma.education.findMany({
-        orderBy: [{ order: "asc" }, { createdAt: "desc" }],
-      }),
-      prisma.certification.findMany({
-        orderBy: [{ order: "asc" }, { issuedAt: "desc" }],
-      }),
+      prisma.skillCategory.findMany({ orderBy: [{ order: "asc" }, { name: "asc" }] }),
+      prisma.project.findMany({ orderBy: [{ order: "asc" }, { createdAt: "desc" }] }),
+      prisma.experience.findMany({ orderBy: [{ order: "asc" }, { createdAt: "desc" }] }),
+      prisma.education.findMany({ orderBy: [{ order: "asc" }, { createdAt: "desc" }] }),
+      prisma.certification.findMany({ orderBy: [{ order: "asc" }, { issuedAt: "desc" }] }),
     ]);
 
   if (!profile) {
     return (
-      <div className="flex flex-1 items-center justify-center text-center">
+      <main
+        id="main"
+        tabIndex={-1}
+        className="chart-ground flex flex-1 items-center justify-center px-4 text-center"
+      >
         <p className="text-sm text-muted-foreground">
           No profile yet. Go to{" "}
-          <Link
-            href="/admin"
-            rel="nofollow"
-            className="underline underline-offset-4"
-          >
+          <Link href="/admin" rel="nofollow" className="text-primary underline underline-offset-4">
             /admin
           </Link>{" "}
           to set one up.
         </p>
-      </div>
+      </main>
     );
   }
 
-  const socials = [
-    profile.githubUrl && {
-      href: profile.githubUrl,
-      icon: Github01Icon,
-      name: "GitHub",
-    },
-    profile.linkedinUrl && {
-      href: profile.linkedinUrl,
-      icon: Linkedin01Icon,
-      name: "LinkedIn",
-    },
-  ].filter(
-    (link): link is { href: string; icon: IconSvgElement; name: string } =>
-      Boolean(link),
-  );
+  const name = displayName(profile);
+  const identities = aliasIdentities(profile.aliases);
+  const taglineChars =
+    [...profile.headline].length * 1.25 +
+    identities.map(formatIdentity).join("   ").length +
+    (profile.headline && identities.length > 0 ? 2.5 : 0);
 
-  const sections = [
-    projects.length > 0 && { href: "#projects", name: "Projects" },
-    experience.length > 0 && { href: "#experience", name: "Experience" },
-    education.length > 0 && { href: "#education", name: "Education" },
-    skills.length > 0 && { href: "#skills", name: "Skills" },
-    certifications.length > 0 && { href: "#certifications", name: "Certifications" },
-    { href: "#contact", name: "Contact" },
-  ].filter((link): link is NavItem => Boolean(link));
+  const socials = [
+    profile.githubUrl && { href: profile.githubUrl, icon: Github01Icon, name: "GitHub" },
+    profile.linkedinUrl && { href: profile.linkedinUrl, icon: Linkedin01Icon, name: "LinkedIn" },
+  ].filter((link): link is { href: string; icon: IconSvgElement; name: string } =>
+    Boolean(link),
+  );
 
   const projectViews: ProjectView[] = projects.map((project) => ({
     id: project.id,
@@ -273,12 +269,60 @@ export default async function Home() {
     certificationUrl: item.certificationUrl,
     issuedAt: item.issuedAt,
   }));
+
   const skillGroups = groupSkillsByCategory(skills, skillCategories);
 
+  const techCounts: Record<string, number> = {};
+  for (const project of projectViews) {
+    for (const tech of new Set(project.techStack.map(techKey))) {
+      techCounts[tech] = (techCounts[tech] ?? 0) + 1;
+    }
+  }
+
+  const careerItems: CareerItem[] = [
+    ...experienceEntries.map((entry) => ({
+      entryId: `experience-${entry.id}`,
+      kind: "experience" as const,
+      title: entry.title,
+      subtitle: entry.subtitle,
+      startDate: entry.startDate,
+      endDate: entry.endDate,
+    })),
+    ...educationEntries.map((entry) => ({
+      entryId: `education-${entry.id}`,
+      kind: "education" as const,
+      title: entry.title,
+      subtitle: entry.subtitle,
+      startDate: entry.startDate,
+      endDate: entry.endDate,
+    })),
+  ];
+  const careerTrack = buildCareerTrack(careerItems);
+
+  const waypoints: Waypoint[] = [
+    { id: "profile", name: "Profile" },
+    projectViews.length > 0 && { id: "projects", name: "Projects", count: projectViews.length },
+    experienceEntries.length > 0 && {
+      id: "experience",
+      name: "Experience",
+      count: experienceEntries.length,
+    },
+    educationEntries.length > 0 && {
+      id: "education",
+      name: "Education",
+      count: educationEntries.length,
+    },
+    skills.length > 0 && { id: "skills", name: "Skills", count: skills.length },
+    certificationViews.length > 0 && {
+      id: "certifications",
+      name: "Certifications",
+      count: certificationViews.length,
+    },
+    { id: "contact", name: "Contact" },
+  ].filter((waypoint): waypoint is Waypoint => Boolean(waypoint));
+
   const heroImage =
-    profile.avatarUrl ??
-    projectViews[0]?.images[0]?.url ??
-    certifications[0]?.imageUrl;
+    profile.avatarUrl ?? projectViews[0]?.images[0]?.url ?? certifications[0]?.imageUrl;
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -286,8 +330,8 @@ export default async function Home() {
       {
         "@type": "Person",
         "@id": `${SITE_URL}/#person`,
-        name: profile.name,
-        alternateName: SITE_ALIASES,
+        name,
+        alternateName: profile.aliases.length > 0 ? profile.aliases : undefined,
         url: SITE_URL,
         jobTitle: profile.headline,
         description: profile.summary,
@@ -315,8 +359,8 @@ export default async function Home() {
         "@type": "WebSite",
         "@id": `${SITE_URL}/#website`,
         url: SITE_URL,
-        name: profile.name,
-        alternateName: SITE_ALIASES,
+        name,
+        alternateName: profile.aliases.length > 0 ? profile.aliases : undefined,
         inLanguage: "en",
         publisher: { "@id": `${SITE_URL}/#person` },
         about: { "@id": `${SITE_URL}/#person` },
@@ -325,66 +369,129 @@ export default async function Home() {
         "@type": "ProfilePage",
         "@id": `${SITE_URL}/#profilepage`,
         url: SITE_URL,
-        name: `${profile.name} (${SITE_ALIASES[0]})`,
+        name: displayTitle(profile),
         isPartOf: { "@id": `${SITE_URL}/#website` },
         mainEntity: { "@id": `${SITE_URL}/#person` },
       },
     ],
   };
 
+  const careerTrackElement = careerTrack && <CareerTrack layout={careerTrack} />;
+
   return (
-    <div className="glass-page flex min-h-dvh flex-col bg-background text-foreground">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+    <RouteProvider waypoints={waypoints}>
+      <ProjectFilterProvider>
+        <div className="chart-ground flex min-h-dvh flex-col text-foreground">
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          />
 
-      <LavaLamp />
+          <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur-md">
+            <div className={cn(frameInset, "flex h-14 items-center justify-between gap-4 sm:h-16")}>
+              <Link
+                href="#profile"
+                className="type-wide flex min-w-0 shrink items-center gap-2.5 rounded-sm text-sm font-bold tracking-[0.02em] uppercase outline-offset-2 focus-visible:outline-2"
+              >
+                <BrandMark />
+                <span className="truncate">{name}</span>
+              </Link>
 
-      <header className="sticky top-0 z-40 bg-background/5 backdrop-blur-[30px] backdrop-saturate-200">
-        <PageFrame className="flex min-h-16 items-center justify-between gap-4">
-          <Link href="/" className="min-w-0 truncate text-sm font-semibold">
-            {profile.name}
-          </Link>
+              <RouteStatus className="hidden sm:flex lg:hidden" />
 
-          <NavLinks items={sections} className="hidden md:flex" />
-
-          <div className="flex shrink-0 items-center gap-1">
-            <ThemeToggle />
-            <MobileNav name={profile.name} sections={sections} />
-          </div>
-        </PageFrame>
-      </header>
-
-      <main className="relative z-10 grid w-full max-w-full flex-1 content-start">
-        <PageSection>
-          <div className="grid gap-8 lg:grid-cols-2">
-            <div className="flex min-w-0 w-full flex-col items-stretch gap-4">
-              <div className="flex flex-col sm:flex-row w-full items-center sm:items-start gap-4 sm:gap-6">
-                {heroImage && (
-                  <div className="glass-orb relative size-28 shrink-0 overflow-hidden rounded-full sm:size-36 lg:size-44">
-                    <Image
-                      src={heroImage}
-                      alt={profile.name}
-                      fill
-                      priority
-                      sizes="(max-width: 640px) 112px, (max-width: 1024px) 144px, 176px"
-                      className="object-cover"
-                    />
-                  </div>
+              <div className="flex shrink-0 items-center gap-1">
+                {profile.resumeUrl && (
+                  <Button asChild variant="ghost" size="text-only" className="hidden sm:inline-flex">
+                    <a href={profile.resumeUrl} target="_blank" rel="noopener noreferrer">
+                      Resume
+                      <UiIcon icon={ArrowUpRight01Icon} />
+                    </a>
+                  </Button>
                 )}
+                <ThemeToggle />
+                <MobileNav
+                  name={name}
+                  sections={waypoints.map((waypoint) => ({
+                    href: `#${waypoint.id}`,
+                    name: waypoint.name,
+                  }))}
+                  triggerClassName="lg:hidden"
+                />
+              </div>
+            </div>
+            <RouteProgressBar className="lg:hidden" />
+          </header>
 
-                <div className="flex min-w-0 flex-1 flex-col gap-3 text-center sm:text-left">
-                  <h1 className="max-w-5xl text-2xl leading-tight font-semibold tracking-tight text-balance sm:text-4xl lg:text-5xl">
-                    {profile.name}
-                  </h1>
-                  <p className="max-w-3xl text-base leading-snug font-medium text-primary sm:text-xl lg:text-2xl">
-                    {profile.headline}
-                  </p>
-                  <p className="text-xs text-muted-foreground sm:text-sm">
-                    Also known as {SITE_ALIASES.join(" · ")}
-                  </p>
-                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-1">
+          <div
+            className={cn(
+              frameInset,
+              "grid flex-1 lg:grid-cols-[11rem_minmax(0,1fr)] lg:gap-10 xl:grid-cols-[12.5rem_minmax(0,1fr)] xl:gap-16",
+            )}
+          >
+            <aside className="hidden lg:block">
+              <RouteRail className="sticky top-24 py-12" />
+            </aside>
+
+            <main id="main" tabIndex={-1} className="min-w-0">
+              <section
+                id="profile"
+                aria-labelledby="profile-name"
+                className="grid items-center gap-8 py-12 lg:grid-cols-12 lg:gap-12"
+              >
+                <div className="@container order-2 flex min-w-0 flex-col items-center gap-6 text-center lg:order-1 lg:col-span-8 lg:items-start lg:text-left xl:col-span-7">
+                  <hgroup className="flex w-full flex-col items-center gap-3 lg:items-start">
+                    <h1
+                      id="profile-name"
+                      style={{ "--fit-chars": [...name].length } as CSSProperties}
+                      className="type-wide display-fit w-full font-bold uppercase"
+                    >
+                      {name}
+                    </h1>
+
+                    {(profile.headline || identities.length > 0) && (
+                      <p
+                        style={{ "--fit-chars": taglineChars } as CSSProperties}
+                        className="tagline-fit flex items-center justify-center gap-x-[0.625em] leading-snug font-medium lg:justify-start lg:[--tagline-max:1.1875rem]"
+                      >
+                        {profile.headline && (
+                          <span className="text-[1.25em] text-primary">{profile.headline}</span>
+                        )}
+                        {profile.headline && identities.length > 0 && (
+                          <span aria-hidden="true" className="h-[1.25em] w-px bg-border" />
+                        )}
+                        {identities.length > 0 && (
+                          <span className="flex items-center gap-x-[0.625em]">
+                            <span className="sr-only">
+                              {profile.headline ? ", also known as " : "Also known as "}
+                            </span>
+                            {identities.map((identity) => (
+                              <span
+                                key={identity.displayName ?? identity.username}
+                                className="inline-flex items-center gap-x-[0.375em]"
+                              >
+                                {identity.displayName && (
+                                  <span className="text-foreground">{identity.displayName}</span>
+                                )}
+                                {identity.username && (
+                                  <span className="font-normal text-muted-foreground">
+                                    @{identity.username}
+                                  </span>
+                                )}
+                              </span>
+                            ))}
+                          </span>
+                        )}
+                      </p>
+                    )}
+                  </hgroup>
+
+                  {profile.summary && (
+                    <p className="max-w-[65ch] text-justify text-sm leading-6 whitespace-pre-line text-muted-foreground hyphens-auto sm:text-base sm:leading-7 lg:text-lg lg:leading-8">
+                      {profile.summary}
+                    </p>
+                  )}
+
+                  <div className="flex flex-wrap items-center justify-center gap-2 lg:justify-start">
                     <Button asChild size="icon-text">
                       <a href="#contact">
                         <UiIcon icon={Mail01Icon} />
@@ -393,156 +500,138 @@ export default async function Home() {
                     </Button>
 
                     {profile.resumeUrl && (
-                      <Button asChild size="icon-text">
-                        <a
-                          href={profile.resumeUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
+                      <Button asChild variant="secondary" size="icon-text">
+                        <a href={profile.resumeUrl} target="_blank" rel="noopener noreferrer">
                           <UiIcon icon={File01Icon} />
                           Resume
+                          <span className="sr-only">(opens in a new tab)</span>
                         </a>
                       </Button>
                     )}
 
                     {socials.map((social) => (
-                      <Button
-                        key={social.name}
-                        asChild
-                        variant="secondary"
-                        size="icon-only"
-                      >
+                      <Button key={social.name} asChild variant="ghost" size="icon-only">
                         <a
                           href={social.href}
                           target="_blank"
                           rel="noopener noreferrer"
-                          aria-label={social.name}
+                          aria-label={`${social.name} (opens in a new tab)`}
                         >
-                          <UiIcon icon={social.icon} className="size-5" />
+                          <UiIcon icon={social.icon} />
                         </a>
                       </Button>
                     ))}
                   </div>
                 </div>
-              </div>
 
-              <p className="w-full text-justify text-sm leading-relaxed text-muted-foreground sm:text-base sm:leading-7">
-                {profile.summary}
-              </p>
-            </div>
-          </div>
-        </PageSection>
-
-        {projectViews.length > 0 && (
-          <PageSection id="projects">
-            <SectionTitle>Projects</SectionTitle>
-            <ProjectShowcase projects={projectViews} />
-          </PageSection>
-        )}
-
-        {experienceEntries.length > 0 && (
-          <PageSection id="experience">
-            <SectionTitle>Experience</SectionTitle>
-            <Timeline entries={experienceEntries} />
-          </PageSection>
-        )}
-
-        {educationEntries.length > 0 && (
-          <PageSection id="education">
-            <SectionTitle>Education</SectionTitle>
-            <Timeline entries={educationEntries} />
-          </PageSection>
-        )}
-
-        {skills.length > 0 && (
-          <PageSection id="skills">
-            <SectionTitle>Skills</SectionTitle>
-
-            <div className="grid gap-x-8 gap-y-10 md:grid-cols-2 xl:grid-cols-4">
-              {skillGroups.map(([category, items]) => (
-                <section key={category} className="flex flex-col gap-4">
-                  <h3 className="text-lg font-semibold">{category}</h3>
-                  <ul className="flex flex-wrap gap-2">
-                    {items.map((skill) => (
-                      <li key={skill.id}>
-                        <Badge>{skill.name}</Badge>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              ))}
-            </div>
-          </PageSection>
-        )}
-
-        {certificationViews.length > 0 && (
-          <PageSection id="certifications">
-            <SectionTitle>Certifications</SectionTitle>
-            <CertificationShowcase certifications={certificationViews} />
-          </PageSection>
-        )}
-
-      </main>
-
-      <footer id="contact" className="glass-nav relative z-10 scroll-mt-16 pb-28 sm:pb-36 lg:pb-44">
-        <PageFrame className="flex flex-col gap-6 py-4 sm:py-6 lg:py-8 xl:py-10">
-          <div className="grid gap-8 lg:grid-cols-12 lg:gap-12 lg:items-start">
-            <div className="flex flex-col gap-6 lg:col-span-5">
-              <div className="flex flex-col gap-3">
-                <SectionTitle>Contact</SectionTitle>
-                <p className="text-base leading-7 text-muted-foreground">
-                  Send a note through the form or email directly.
-                </p>
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                  Email
-                </span>
-                <FooterEmail email={profile.email} />
-              </div>
-
-              {socials.length > 0 && (
-                <div className="flex flex-col gap-2.5">
-                  <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                    Connect
-                  </span>
-                  <div className="flex flex-wrap gap-2">
-                    {socials.map((social) => (
-                      <Button
-                        key={social.name}
-                        asChild
-                        variant="secondary"
-                        size="icon-only"
-                      >
-                        <a
-                          href={social.href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          aria-label={social.name}
-                        >
-                          <UiIcon icon={social.icon} className="size-5" />
-                        </a>
-                      </Button>
-                    ))}
-                  </div>
+                <div className="order-1 mx-auto w-full max-w-52 sm:max-w-64 lg:order-2 lg:col-span-4 lg:max-w-80 xl:col-span-5 xl:max-w-88">
+                  <CompassRose imageUrl={profile.avatarUrl} name={name} />
                 </div>
+              </section>
+
+              {projectViews.length > 0 && (
+                <ChartSection id="projects" title="Projects" meta={plural(projectViews.length, "project")}>
+                  <ProjectShowcase projects={projectViews} />
+                </ChartSection>
               )}
-            </div>
 
-            <div className="lg:col-span-7">
-              <ContactForm />
-            </div>
+              {experienceEntries.length > 0 && (
+                <ChartSection
+                  id="experience"
+                  title="Experience"
+                  meta={plural(experienceEntries.length, "role")}
+                >
+                  {careerTrackElement}
+                  <Timeline entries={experienceEntries} idPrefix="experience" />
+                </ChartSection>
+              )}
+
+              {educationEntries.length > 0 && (
+                <ChartSection
+                  id="education"
+                  title="Education"
+                  meta={plural(educationEntries.length, "entry", "entries")}
+                >
+                  {experienceEntries.length === 0 && careerTrackElement}
+                  <Timeline entries={educationEntries} idPrefix="education" />
+                </ChartSection>
+              )}
+
+              {skills.length > 0 && (
+                <ChartSection id="skills" title="Skills" meta={plural(skills.length, "skill")}>
+                  <SkillsBoard groups={skillGroups} techCounts={techCounts} />
+                </ChartSection>
+              )}
+
+              {certificationViews.length > 0 && (
+                <ChartSection
+                  id="certifications"
+                  title="Certifications"
+                  meta={plural(certificationViews.length, "certification")}
+                >
+                  <CertificationShowcase certifications={certificationViews} />
+                </ChartSection>
+              )}
+
+              <ChartSection id="contact">
+                <div className="grid gap-8 lg:grid-cols-12 lg:gap-12">
+                  <div className="flex flex-col lg:col-span-5">
+                    <ChartHeading id="contact" title="Contact" className="mb-6 sm:mb-8" />
+
+                    <p className="max-w-[42ch] text-sm leading-6 text-muted-foreground sm:text-base sm:leading-7 lg:text-lg lg:leading-8">
+                      Send a note through the form or email directly.
+                    </p>
+
+                    <div className="mt-8 flex flex-col gap-6 sm:mt-10">
+                      <div className="flex flex-col gap-2">
+                        <span className="chart-label text-muted-foreground">Email</span>
+                        <FooterEmail email={profile.email} />
+                      </div>
+
+                      {socials.length > 0 && (
+                        <div className="flex flex-col gap-2">
+                          <span className="chart-label text-muted-foreground">Elsewhere</span>
+                          <ul className="flex flex-wrap gap-2">
+                            {socials.map((social) => (
+                              <li key={social.name}>
+                                <Button asChild variant="secondary" size="icon-text">
+                                  <a href={social.href} target="_blank" rel="noopener noreferrer">
+                                    <UiIcon icon={social.icon} />
+                                    {social.name}
+                                    <span className="sr-only">(opens in a new tab)</span>
+                                  </a>
+                                </Button>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="lg:col-span-7">
+                    <ContactForm />
+                  </div>
+                </div>
+              </ChartSection>
+            </main>
           </div>
 
-          <div className="flex flex-col items-center justify-between gap-4 text-xs text-muted-foreground sm:flex-row">
-            <p>
-              © {new Date().getFullYear()} {profile.name} ({SITE_ALIASES.join(" / ")}). All rights
-              reserved.
-            </p>
-          </div>
-        </PageFrame>
-      </footer>
-    </div>
+          <footer className="border-t border-border">
+            <div
+              className={cn(
+                frameInset,
+                "chart-label flex flex-col gap-2 py-6 text-muted-foreground sm:flex-row sm:items-center sm:justify-between",
+              )}
+            >
+              <p>
+                © {new Date().getFullYear()} {name}
+              </p>
+              {identities.length > 0 && <p>{identities.map(formatIdentity).join(" · ")}</p>}
+            </div>
+          </footer>
+        </div>
+      </ProjectFilterProvider>
+    </RouteProvider>
   );
 }
