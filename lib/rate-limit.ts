@@ -20,40 +20,45 @@ export async function consumeRateLimit({
   limit: number;
   windowMs: number;
 }): Promise<RateLimitResult> {
-  const now = new Date();
-  const resetAt = new Date(now.getTime() + windowMs);
-  const existing = await prisma.rateLimit.findUnique({ where: { key } });
+  const [row] = await prisma.$queryRaw<
+    { count: number; retryAfterSeconds: number }[]
+  >`
+    INSERT INTO "RateLimit" ("key", "count", "resetAt", "updatedAt")
+    VALUES (
+      ${key},
+      1,
+      (now() AT TIME ZONE 'UTC') + make_interval(secs => ${windowMs / 1000}),
+      now() AT TIME ZONE 'UTC'
+    )
+    ON CONFLICT ("key") DO UPDATE SET
+      "count" = CASE
+        WHEN "RateLimit"."resetAt" <= EXCLUDED."updatedAt" THEN 1
+        ELSE "RateLimit"."count" + 1
+      END,
+      "resetAt" = CASE
+        WHEN "RateLimit"."resetAt" <= EXCLUDED."updatedAt" THEN EXCLUDED."resetAt"
+        ELSE "RateLimit"."resetAt"
+      END,
+      "updatedAt" = EXCLUDED."updatedAt"
+    RETURNING
+      "count",
+      ceil(extract(epoch FROM "resetAt" - "updatedAt"))::int AS "retryAfterSeconds"
+  `;
 
-  if (!existing || existing.resetAt <= now) {
-    await prisma.rateLimit.upsert({
-      where: { key },
-      create: { key, count: 1, resetAt },
-      update: { count: 1, resetAt },
-    });
-
-    return { allowed: true, retryAfterSeconds: 0 };
-  }
-
-  if (existing.count >= limit) {
+  if (row.count > limit) {
     return {
       allowed: false,
-      retryAfterSeconds: Math.max(
-        1,
-        Math.ceil((existing.resetAt.getTime() - now.getTime()) / 1000),
-      ),
+      retryAfterSeconds: Math.max(1, row.retryAfterSeconds),
     };
   }
-
-  await prisma.rateLimit.update({
-    where: { key },
-    data: { count: { increment: 1 } },
-  });
 
   return { allowed: true, retryAfterSeconds: 0 };
 }
 
 export async function clearRateLimit(key: string): Promise<void> {
-  await prisma.rateLimit.deleteMany({ where: { key } });
+  await prisma.rateLimit.deleteMany({
+    where: { OR: [{ key }, { resetAt: { lt: new Date() } }] },
+  });
 }
 
 export function formatRetryAfter(seconds: number): string {
