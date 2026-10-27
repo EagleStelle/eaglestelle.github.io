@@ -30,19 +30,19 @@ export function createOtpAuthUrl({
   return `otpauth://totp/${encodeURIComponent(label)}?${params.toString()}`;
 }
 
-export function verifyTotpCode(code: string, secret: string): boolean {
+export function verifyTotpCode(code: string, secret: string): number | null {
   const normalized = code.replace(/\s/g, "");
-  if (!/^\d{6}$/.test(normalized)) return false;
+  if (!/^\d{6}$/.test(normalized)) return null;
 
   const counter = Math.floor(Date.now() / 1000 / PERIOD_SECONDS);
 
-  for (let offset = -WINDOW; offset <= WINDOW; offset++) {
-    if (safeEqual(normalized, hotp(secret, counter + offset))) {
-      return true;
+  for (let step = counter - WINDOW; step <= counter + WINDOW; step++) {
+    if (safeEqual(normalized, hotp(secret, step))) {
+      return step;
     }
   }
 
-  return false;
+  return null;
 }
 
 function hotp(secret: string, counter: number): string {

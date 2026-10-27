@@ -1,3 +1,4 @@
+import { createHash, randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -114,10 +115,26 @@ export async function verifyCredentials({
   return validUsername && validPassword;
 }
 
+function hashToken(token: string): string {
+  return createHash("sha256").update(token).digest("base64url");
+}
+
 export async function createSession(): Promise<void> {
-  const expiresAt = String(Date.now() + SESSION_TTL_SECONDS * 1000);
+  const token = randomBytes(32).toString("base64url");
+  const now = Date.now();
+
+  await prisma.adminSession.deleteMany({
+    where: { expiresAt: { lt: new Date(now) } },
+  });
+  await prisma.adminSession.create({
+    data: {
+      tokenHash: hashToken(token),
+      expiresAt: new Date(now + SESSION_TTL_SECONDS * 1000),
+    },
+  });
+
   const store = await cookies();
-  store.set(COOKIE_NAME, `${expiresAt}.${await sign(expiresAt)}`, {
+  store.set(COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
@@ -128,6 +145,14 @@ export async function createSession(): Promise<void> {
 
 export async function destroySession(): Promise<void> {
   const store = await cookies();
+  const token = store.get(COOKIE_NAME)?.value;
+
+  if (token) {
+    await prisma.adminSession.deleteMany({
+      where: { tokenHash: hashToken(token) },
+    });
+  }
+
   store.delete(COOKIE_NAME);
 }
 
@@ -269,34 +294,48 @@ export async function getTotpSecret(): Promise<string | null> {
   return security?.totpSecret ?? null;
 }
 
-export async function saveTotpSecret(secret: string): Promise<void> {
+export async function saveTotpSecret(
+  secret: string,
+  step: number,
+): Promise<void> {
   await prisma.adminSecurity.upsert({
     where: { id: 1 },
     create: {
       id: 1,
       totpSecret: secret,
       totpEnabledAt: new Date(),
+      totpLastStep: step,
     },
     update: {
       totpSecret: secret,
       totpEnabledAt: new Date(),
+      totpLastStep: step,
     },
   });
+}
+
+export async function claimTotpStep(step: number): Promise<boolean> {
+  const { count } = await prisma.adminSecurity.updateMany({
+    where: {
+      id: 1,
+      OR: [{ totpLastStep: null }, { totpLastStep: { lt: step } }],
+    },
+    data: { totpLastStep: step },
+  });
+
+  return count === 1;
 }
 
 export async function isAuthenticated(): Promise<boolean> {
   const token = (await cookies()).get(COOKIE_NAME)?.value;
   if (!token) return false;
 
-  const separator = token.lastIndexOf(".");
-  if (separator === -1) return false;
+  const session = await prisma.adminSession.findUnique({
+    where: { tokenHash: hashToken(token) },
+    select: { expiresAt: true },
+  });
 
-  const payload = token.slice(0, separator);
-  const signature = token.slice(separator + 1);
-  if (!safeEqual(signature, await sign(payload))) return false;
-
-  const expiresAt = Number(payload);
-  return Number.isFinite(expiresAt) && expiresAt > Date.now();
+  return Boolean(session && session.expiresAt > new Date());
 }
 
 export async function requireAdmin(): Promise<void> {

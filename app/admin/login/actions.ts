@@ -9,6 +9,7 @@ import {
 } from "@/lib/rate-limit";
 import { getClientIp } from "@/lib/request-ip";
 import {
+  claimTotpStep,
   createSession,
   createTotpLoginChallenge,
   createTotpSetupChallenge,
@@ -225,7 +226,12 @@ async function completeTotpLogin(formData: FormData): Promise<LoginState> {
     return loginState("Authenticator is not configured. Sign in again.");
   }
 
-  if (!verifyTotpCode(text(formData, "code"), secret)) {
+  const step = verifyTotpCode(text(formData, "code"), secret);
+
+  if (step === null || !(await claimTotpStep(step))) {
+    console.warn("Admin authenticator code failed after a valid password.", {
+      ip: await getClientIp(),
+    });
     return totpState("Incorrect authenticator code.", challenge.username);
   }
 
@@ -260,7 +266,9 @@ async function completeAuthenticatorSetup(
     });
   }
 
-  if (!verifyTotpCode(text(formData, "code"), challenge.secret)) {
+  const step = verifyTotpCode(text(formData, "code"), challenge.secret);
+
+  if (step === null) {
     return setupState({
       message: "Incorrect authenticator code.",
       secret: challenge.secret,
@@ -268,7 +276,7 @@ async function completeAuthenticatorSetup(
     });
   }
 
-  await saveTotpSecret(challenge.secret);
+  await saveTotpSecret(challenge.secret, step);
   await destroyTotpSetupChallenge();
   await clearRateLimit(limit.key);
   await createSession();

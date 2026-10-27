@@ -91,7 +91,13 @@ model AdminSecurity {
   id            Int       @id @default(1)
   totpSecret    String?
   totpEnabledAt DateTime?
+  totpLastStep  Int?
   updatedAt     DateTime  @updatedAt
+}
+
+model AdminSession {
+  tokenHash String   @id
+  expiresAt DateTime
 }
 
 model RateLimit {
