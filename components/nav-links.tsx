@@ -36,6 +36,22 @@ export function navigateToSection(id: string, delay = 0) {
   }
 }
 
+export function SectionLink({
+  id,
+  ...props
+}: Omit<React.ComponentProps<"a">, "href"> & { id: string }) {
+  return (
+    <a
+      {...props}
+      href={`#${id}`}
+      onClick={(event) => {
+        event.preventDefault();
+        navigateToSection(id);
+      }}
+    />
+  );
+}
+
 function useActiveHref(items: NavItem[]) {
   const pathname = usePathname();
   const hasHashLinks = items.some((item) => item.href.startsWith("#"));

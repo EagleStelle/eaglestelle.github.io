@@ -16,6 +16,7 @@ import { CompassRose } from "@/components/compass-rose";
 import { ContactForm } from "@/components/contact-form";
 import { FooterEmail } from "@/components/footer-email";
 import { MobileNav } from "@/components/mobile-nav";
+import { SectionLink } from "@/components/nav-links";
 import { frameInset } from "@/components/page-frame";
 import { ProjectFilterProvider } from "@/components/project-filter";
 import { ProjectShowcase, type ProjectView } from "@/components/project-showcase";
@@ -389,13 +390,13 @@ export default async function Home() {
 
           <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur-md">
             <div className={cn(frameInset, "flex h-14 items-center justify-between gap-4 sm:h-16")}>
-              <Link
-                href="#profile"
+              <SectionLink
+                id="profile"
                 className="type-wide flex min-w-0 shrink items-center gap-2.5 rounded-sm text-sm font-bold tracking-[0.02em] uppercase outline-offset-2 focus-visible:outline-2"
               >
                 <BrandMark />
                 <span className="truncate">{name}</span>
-              </Link>
+              </SectionLink>
 
               <RouteStatus className="hidden sm:flex lg:hidden" />
 
