@@ -29,7 +29,6 @@
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
   --color-tint: var(--tint);
-  --color-grid-line: var(--grid-line);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -71,7 +70,6 @@
   --input: oklch(0.62 0.012 78);
   --ring: oklch(0.5 0.1 75);
   --tint: oklch(0.945 0.014 82);
-  --grid-line: oklch(0.22 0.008 75 / 0.065);
 }
 
 .dark {
@@ -94,7 +92,6 @@
   --input: oklch(0.52 0.005 78);
   --ring: oklch(0.82 0.12 82);
   --tint: oklch(0.225 0.008 80);
-  --grid-line: oklch(0.93 0.004 85 / 0.05);
   --star: oklch(0.93 0.004 85);
 }
 
@@ -200,11 +197,6 @@
 @layer components {
   .chart-ground {
     background-color: var(--background);
-    background-image:
-      linear-gradient(var(--grid-line) 1px, transparent 1px),
-      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
-    background-size: 7.5rem 7.5rem;
-    background-position: -1px -1px;
   }
 
   .dark .chart-ground {
@@ -213,18 +205,13 @@
       radial-gradient(circle at 72% 18%, color-mix(in oklch, var(--star), transparent 35%) 0 0.75px, transparent 1.5px),
       radial-gradient(circle at 14% 76%, color-mix(in oklch, var(--star), transparent 15%) 0 1px, transparent 1.75px),
       radial-gradient(circle at 58% 62%, var(--primary) 0 1px, transparent 2px),
-      radial-gradient(circle at 86% 39%, var(--star) 0 1.25px, transparent 2.5px),
-      linear-gradient(var(--grid-line) 1px, transparent 1px),
-      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+      radial-gradient(circle at 86% 39%, var(--star) 0 1.25px, transparent 2.5px);
     background-size:
       131px 149px,
       211px 173px,
       293px 251px,
       457px 389px,
-      613px 541px,
-      7.5rem 7.5rem,
-      7.5rem 7.5rem;
-    background-position: 0 0, 0 0, 0 0, 0 0, 0 0, -1px -1px, -1px -1px;
+      613px 541px;
   }
 
   .star-rail {
