@@ -16,7 +16,7 @@ model Profile {
   email       String
   githubUrl   String?
   linkedinUrl String?
-  themeColor  String   @default("rose")
+  aliases     String?
   updatedAt   DateTime @updatedAt
 }
 

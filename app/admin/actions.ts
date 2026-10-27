@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { destroySession, requireAdmin } from "@/lib/auth";
-import { normalizeThemeColor } from "@/lib/appearance";
 import { normalizeMonthValue } from "@/lib/period";
 import {
   assertPersistedBlobUrls,
@@ -18,6 +17,7 @@ import {
   parseProjectImages,
   parseProjectList,
   serializeProjectImages,
+  serializeProjectList,
   type ProjectImage,
 } from "@/lib/project-data";
 
@@ -68,7 +68,7 @@ function requireId(formData: FormData): number {
 }
 
 function refresh(path: string): void {
-  revalidatePath("/");
+  revalidatePath("/", "layout");
   revalidatePath(path);
 }
 
@@ -133,6 +133,7 @@ export async function saveProfile(formData: FormData): Promise<void> {
   const avatarUrl = optionalText(formData, "avatarUrl");
   const resumeUrl = optionalText(formData, "resumeUrl");
   const existing = await prisma.profile.findUnique({ where: { id: 1 } });
+  const aliases = parseProjectList(text(formData, "aliases"));
 
   const data = {
     name: text(formData, "name"),
@@ -143,9 +144,7 @@ export async function saveProfile(formData: FormData): Promise<void> {
     email: text(formData, "email"),
     githubUrl: optionalText(formData, "githubUrl"),
     linkedinUrl: optionalText(formData, "linkedinUrl"),
-    themeColor: normalizeThemeColor(
-      formData.get("themeColor") ?? existing?.themeColor ?? null,
-    ),
+    aliases: aliases.length > 0 ? serializeProjectList(aliases) : null,
   };
 
   await prisma.profile.upsert({

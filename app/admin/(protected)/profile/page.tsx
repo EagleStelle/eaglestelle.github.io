@@ -2,6 +2,7 @@ import ImageUpload from "@/components/ImageUpload";
 import { ActionForm } from "@/components/admin/action-form";
 import { Field, PrimaryButton, TextArea, TextInput } from "@/components/form";
 import { prisma } from "@/lib/prisma";
+import { parseProjectList } from "@/lib/project-data";
 import { saveProfile } from "@/app/admin/actions";
 
 export default async function AdminProfilePage() {
@@ -32,6 +33,13 @@ export default async function AdminProfilePage() {
           />
         </Field>
       </div>
+
+      <Field label="Aliases (comma-separated)">
+        <TextInput
+          name="aliases"
+          defaultValue={parseProjectList(profile?.aliases).join(", ")}
+        />
+      </Field>
 
       <Field label="Summary">
         <TextArea name="summary" defaultValue={profile?.summary} required />
