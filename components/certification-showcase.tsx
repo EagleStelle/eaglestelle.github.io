@@ -51,13 +51,13 @@ function CertificationCard({
 
   return (
     <li className="group/tile relative flex flex-col overflow-hidden rounded-md border bg-card transition-[border-color] duration-200 hover:border-primary/70 has-[[data-tile-open]:focus-visible]:outline-2 has-[[data-tile-open]:focus-visible]:outline-offset-2 has-[[data-tile-open]:focus-visible]:outline-ring">
-      <div className="relative aspect-7/5 border-b bg-tint">
+      <div className="relative aspect-7/5 overflow-hidden border-b bg-tint">
         <Image
           src={certification.imageUrl}
           alt=""
           fill
           sizes="(min-width: 1280px) 22rem, 45vw"
-          className="object-contain p-2 transition-transform duration-500 ease-out group-hover/tile:scale-[1.03] sm:p-3"
+          className="object-cover transition-transform duration-500 ease-out group-hover/tile:scale-[1.03]"
         />
       </div>
 
