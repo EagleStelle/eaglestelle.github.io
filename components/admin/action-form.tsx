@@ -8,6 +8,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useTransition,
   type ComponentProps,
   type ReactNode,
 } from "react";
@@ -22,7 +23,7 @@ export type ActionFormProps = Omit<ComponentProps<"form">, "action"> & {
 
 type CreateActionFormProps = Omit<ActionFormProps, "resetOnSuccess">;
 
-type FormSubmitCaptureEvent = Parameters<
+type FormSubmitEvent = Parameters<
   NonNullable<ComponentProps<"form">["onSubmitCapture"]>
 >[0];
 
@@ -59,6 +60,7 @@ export function ActionForm({
   const skipPrepareRef = useRef(false);
   const preparingRef = useRef(false);
   const [preparing, setPreparing] = useState(false);
+  const [pending, startTransition] = useTransition();
 
   const registerBeforeSubmit = useCallback((task: BeforeSubmitTask) => {
     tasksRef.current.add(task);
@@ -72,7 +74,7 @@ export function ActionForm({
     [registerBeforeSubmit],
   );
 
-  function handleSubmitCapture(event: FormSubmitCaptureEvent) {
+  function handleSubmitCapture(event: FormSubmitEvent) {
     onSubmitCapture?.(event);
     if (event.defaultPrevented) return;
 
@@ -109,26 +111,34 @@ export function ActionForm({
     })();
   }
 
+  function handleSubmit(event: FormSubmitEvent) {
+    if (event.defaultPrevented) return;
+    event.preventDefault();
+
+    const formData = new FormData(event.currentTarget);
+    startTransition(async () => {
+      try {
+        await action(formData);
+        toast.success(success);
+        if (resetOnSuccess) {
+          formRef.current?.reset();
+        }
+      } catch (cause) {
+        toast.error(
+          cause instanceof Error ? cause.message : "Something went wrong.",
+        );
+      }
+    });
+  }
+
   return (
     <ActionFormContext.Provider value={contextValue}>
       <form
         {...props}
         ref={formRef}
-        aria-busy={preparing || props["aria-busy"]}
+        aria-busy={preparing || pending || props["aria-busy"]}
         onSubmitCapture={handleSubmitCapture}
-        action={async (formData) => {
-          try {
-            await action(formData);
-            toast.success(success);
-            if (resetOnSuccess) {
-              formRef.current?.reset();
-            }
-          } catch (cause) {
-            toast.error(
-              cause instanceof Error ? cause.message : "Something went wrong.",
-            );
-          }
-        }}
+        onSubmit={handleSubmit}
       >
         {children}
       </form>
