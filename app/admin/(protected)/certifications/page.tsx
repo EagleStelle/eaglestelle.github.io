@@ -70,7 +70,6 @@ export default async function AdminCertificationsPage() {
           entityType="certification"
           items={certifications.map((certification) => ({
             id: certification.id,
-            order: certification.order,
             content: (
               <div className="flex flex-col gap-5">
                 <ActionForm
@@ -79,7 +78,6 @@ export default async function AdminCertificationsPage() {
                   className="flex flex-col gap-5"
                 >
                   <input type="hidden" name="id" value={certification.id} />
-                  <input type="hidden" name="order" value={certification.order} />
 
                   <ImageUpload
                     name="imageUrl"

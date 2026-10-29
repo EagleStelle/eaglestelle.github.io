@@ -54,11 +54,6 @@ function requiredText(formData: FormData, key: string, label: string): string {
   return value;
 }
 
-function integer(formData: FormData, key: string): number {
-  const value = Number(formData.get(key));
-  return Number.isFinite(value) ? Math.trunc(value) : 0;
-}
-
 function requireId(formData: FormData): number {
   const id = Number(formData.get("id"));
   if (!Number.isInteger(id)) {
@@ -93,11 +88,7 @@ async function saveSkillCategoryOption(name: string | null): Promise<void> {
 
 async function getNextOrder(
   entity: "skill" | "skillCategory" | "project" | "experience" | "education" | "certification",
-  providedOrder?: number,
 ): Promise<number> {
-  if (providedOrder && providedOrder !== 0) {
-    return providedOrder;
-  }
   let maxItem: { order: number } | null = null;
   switch (entity) {
     case "skill":
@@ -171,8 +162,7 @@ export async function createSkill(formData: FormData): Promise<void> {
   const category = optionalText(formData, "category");
   await saveSkillCategoryOption(category);
 
-  const providedOrder = integer(formData, "order");
-  const order = await getNextOrder("skill", providedOrder);
+  const order = await getNextOrder("skill");
 
   await prisma.skill.create({
     data: {
@@ -188,15 +178,17 @@ export async function createSkill(formData: FormData): Promise<void> {
 export async function updateSkill(formData: FormData): Promise<void> {
   await requireAdmin();
 
+  const id = requireId(formData);
   const category = optionalText(formData, "category");
   await saveSkillCategoryOption(category);
+  const current = await prisma.skill.findUnique({ where: { id } });
 
   await prisma.skill.update({
-    where: { id: requireId(formData) },
+    where: { id },
     data: {
       name: text(formData, "name"),
       category,
-      order: integer(formData, "order"),
+      order: current?.category === category ? undefined : await getNextOrder("skill"),
     },
   });
 
@@ -221,8 +213,7 @@ export async function createSkillCategory(formData: FormData): Promise<void> {
     throw new Error("A category with that name already exists.");
   }
 
-  const providedOrder = integer(formData, "order");
-  const order = await getNextOrder("skillCategory", providedOrder);
+  const order = await getNextOrder("skillCategory");
 
   await prisma.skillCategory.create({
     data: {
@@ -239,7 +230,6 @@ export async function updateSkillCategory(formData: FormData): Promise<void> {
 
   const id = requireId(formData);
   const name = requiredText(formData, "name", "Category name");
-  const order = integer(formData, "order");
 
   const current = await prisma.skillCategory.findUnique({ where: { id } });
   if (!current) {
@@ -254,7 +244,7 @@ export async function updateSkillCategory(formData: FormData): Promise<void> {
   await prisma.$transaction([
     prisma.skillCategory.update({
       where: { id },
-      data: { name, order },
+      data: { name },
     }),
     prisma.skill.updateMany({
       where: { category: current.name },
@@ -290,8 +280,7 @@ export async function createProject(formData: FormData): Promise<void> {
   await requireAdmin();
 
   const images = projectImages(formData);
-  const providedOrder = integer(formData, "order");
-  const order = await getNextOrder("project", providedOrder);
+  const order = await getNextOrder("project");
 
   await prisma.project.create({
     data: {
@@ -337,7 +326,6 @@ export async function updateProject(formData: FormData): Promise<void> {
       sourceUrl: optionalText(formData, "sourceUrl"),
       startDate: optionalMonth(formData, "startDate", "Start month"),
       endDate: optionalMonth(formData, "endDate", "End month"),
-      order: integer(formData, "order"),
     },
   });
 
@@ -373,8 +361,7 @@ export async function deleteProject(formData: FormData): Promise<void> {
 export async function createExperience(formData: FormData): Promise<void> {
   await requireAdmin();
 
-  const providedOrder = integer(formData, "order");
-  const order = await getNextOrder("experience", providedOrder);
+  const order = await getNextOrder("experience");
 
   await prisma.experience.create({
     data: {
@@ -411,7 +398,6 @@ export async function updateExperience(formData: FormData): Promise<void> {
       startDate: optionalMonth(formData, "startDate", "Start month"),
       endDate: optionalMonth(formData, "endDate", "End month"),
       description: text(formData, "description"),
-      order: integer(formData, "order"),
     },
   });
 
@@ -442,8 +428,7 @@ export async function deleteExperience(formData: FormData): Promise<void> {
 export async function createEducation(formData: FormData): Promise<void> {
   await requireAdmin();
 
-  const providedOrder = integer(formData, "order");
-  const order = await getNextOrder("education", providedOrder);
+  const order = await getNextOrder("education");
 
   await prisma.education.create({
     data: {
@@ -476,7 +461,6 @@ export async function updateEducation(formData: FormData): Promise<void> {
       startDate: optionalMonth(formData, "startDate", "Start month"),
       endDate: optionalMonth(formData, "endDate", "End month"),
       description: text(formData, "description"),
-      order: integer(formData, "order"),
     },
   });
 
@@ -507,8 +491,7 @@ export async function deleteEducation(formData: FormData): Promise<void> {
 export async function createCertification(formData: FormData): Promise<void> {
   await requireAdmin();
 
-  const providedOrder = integer(formData, "order");
-  const order = await getNextOrder("certification", providedOrder);
+  const order = await getNextOrder("certification");
   const imageUrl = requiredText(formData, "imageUrl", "Certificate image");
 
   await prisma.certification.create({
@@ -540,7 +523,6 @@ export async function updateCertification(formData: FormData): Promise<void> {
       imageUrl,
       certificationUrl: optionalText(formData, "certificationUrl"),
       issuedAt: optionalMonth(formData, "issuedAt", "Issued month"),
-      order: integer(formData, "order"),
     },
   });
 

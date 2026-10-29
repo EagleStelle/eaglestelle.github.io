@@ -88,7 +88,6 @@ export default async function AdminProjectsPage() {
           entityType="project"
           items={projects.map((project) => ({
             id: project.id,
-            order: project.order,
             content: (
               <div className="flex flex-col gap-5">
                 <ActionForm
@@ -97,7 +96,6 @@ export default async function AdminProjectsPage() {
                   className="flex flex-col gap-5"
                 >
                   <input type="hidden" name="id" value={project.id} />
-                  <input type="hidden" name="order" value={project.order} />
 
                   <ImageGalleryUpload
                     name="imageUrls"

@@ -97,7 +97,6 @@ export default async function AdminExperiencePage() {
           entityType="experience"
           items={experience.map((item) => ({
             id: item.id,
-            order: item.order,
             content: (
               <div className="flex flex-col gap-5">
                 <ActionForm
@@ -106,7 +105,6 @@ export default async function AdminExperiencePage() {
                   className="flex flex-col gap-5"
                 >
                   <input type="hidden" name="id" value={item.id} />
-                  <input type="hidden" name="order" value={item.order} />
 
                   <ImageUpload
                     name="logoUrl"

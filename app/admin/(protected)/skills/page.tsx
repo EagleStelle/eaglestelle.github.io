@@ -109,7 +109,6 @@ export default async function AdminSkillsPage() {
           entityType="skillCategory"
           items={skillCategories.map((category) => ({
             id: category.id,
-            order: category.order,
             content: (
               <div className="flex flex-wrap items-center gap-3">
                 <ActionForm
@@ -118,7 +117,6 @@ export default async function AdminSkillsPage() {
                   className="flex flex-1 flex-wrap items-center gap-3"
                 >
                   <input type="hidden" name="id" value={category.id} />
-                  <input type="hidden" name="order" value={category.order} />
                   <div className="min-w-44 flex-1">
                     <TextInput
                       name="name"
