@@ -10,7 +10,6 @@ import { cn } from "@/lib/utils";
 
 export type ReorderableItem = {
   id: number | string;
-  order?: number;
   content: ReactNode;
 };
 
@@ -44,6 +43,7 @@ export function ReorderableList({
   const [draft, setDraft] = useState("");
   const [isPending, startTransition] = useTransition();
   const list = listState.sourceItems === items ? listState.list : items;
+  const reorderable = Boolean(entityType || onReorder);
 
   function setList(list: ReorderableItem[]) {
     setListState({ sourceItems: items, list });
@@ -197,7 +197,10 @@ export function ReorderableList({
               />
             )}
 
-            <div className="flex shrink-0 flex-col items-center justify-center gap-2 border-r border-border/50 pr-3">
+            <div
+              hidden={!reorderable}
+              className="flex shrink-0 flex-col items-center justify-center gap-2 border-r border-border/50 pr-3"
+            >
               <button
                 type="button"
                 title="Drag to reorder, or focus and press arrow keys"

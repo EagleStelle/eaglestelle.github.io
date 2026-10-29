@@ -19,7 +19,6 @@ export type SkillItem = {
   id: number;
   name: string;
   category: string | null;
-  order: number;
 };
 
 export type SkillGroup = {
@@ -187,10 +186,9 @@ export function CategorizedSkills({ groups, categoryOptions }: Props) {
                 </div>
               ) : (
                 <ReorderableList
-                  entityType="skill"
+                  entityType={searchQuery.trim() ? undefined : "skill"}
                   items={group.skills.map((skill) => ({
                     id: skill.id,
-                    order: skill.order,
                     content: (
                       <div className="flex flex-wrap items-center gap-3">
                         <ActionForm
@@ -199,7 +197,6 @@ export function CategorizedSkills({ groups, categoryOptions }: Props) {
                           className="flex flex-1 flex-wrap items-center gap-3"
                         >
                           <input type="hidden" name="id" value={skill.id} />
-                          <input type="hidden" name="order" value={skill.order} />
                           <div className="min-w-36 flex-1">
                             <TextInput
                               name="name"
